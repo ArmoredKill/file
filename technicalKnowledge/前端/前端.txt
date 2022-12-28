@@ -1,0 +1,29 @@
+es import export default
+
+commonjs require modules.export 
+
+es2015
+
+es2021
+
+vue3 
+
+setup
+
+composation api
+
+预处理css sass scss less
+css
+后处理 post.css autoprefiex
+
+
+node npm yarn npx vscode 
+vue3 + ts + vite (webpack) + pinia(vuex) + router + axios + tailwindcss(postcss)（功能类库）
+
+link src = "css";
+
+node_modules 
+
+metro4.css p-3 text-center
+
+csp vue2

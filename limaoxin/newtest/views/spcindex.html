@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<meta charset="utf-8" />
+	<title>测试sheetjs</title>
+	<script src="../libs/jquery/3.4.1/jquery.min.js"></script>
+	<script src="../libs/bootstrap/3.3.4/dist/js/bootstrap.min.js"></script>
+	<script src="../libs/bootstrap-treeview-master/2.1.0/dist/bootstrap-treeview.min.js"></script>
+	<script src="../libs/layui/layui.js"></script>
+	<link href="../libs/layui/css/layui.css" rel="stylesheet" />
+	<link href="../libs/bootstrap/3.3.4/dist/css/bootstrap.css" rel="stylesheet">
+	<link href="../libs/bootstrap/3.3.4/dist/css/theme.css" rel="stylesheet">
+	<link href="../libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.css" rel="stylesheet">
+	<link href="../libs/bootstrap-treeview-master/2.1.0/dist/bootstrap-treeview.css" rel="stylesheet">
+</head>
+
+<body>
+	<div class="content">
+		<div class="module message" style="margin:0px; ">
+			<div class="module-head">
+				<h2> DP选择</h2>
+			</div>
+			<div class="module-body table">
+				<div id='div_layer'>
+					<div id='MenuTreeview' class='treeview' style="overflow:scroll;"></div>
+				</div>
+			</div>
+		</div>
+	</div>
+</body>
+<script type="text/javascript">
+
+	$(function () {
+		$.getJSON('/limaoxin/newtest/views/storage/menudata.json', function (data) {
+			if (data) {
+				var newNode = [], temp1 = [], temp2 = [], temp3 = [], name = [];
+				$.each(data, function (f, first) {
+					var X = JSON.parse(JSON.stringify(first));
+					X.nodes = [];
+					temp2.push(X)
+					$.each(first.nodes, function (s, second) {
+						var y = JSON.parse(JSON.stringify(second));
+						y.nodes = [];
+						y.second = first.text;
+						temp3.push(y);
+						name.push(second.text);
+						$.each(second.nodes, function (t, third) {
+							third.second = second.text;
+							third.first = first.text;
+							temp1.push(third)
+						})
+					})
+				})
+				name = Array.from(new Set(name));
+				$.each(temp3,function(j,jt){
+					$.each(temp2,function(y,yt){
+						if(jt.second === yt.text){
+							var second = yt;
+							jt.nodes.push(second)
+							$.each(temp1,function(x,xt){
+								if(xt.first === second.text && xt.second === jt.text){
+									second.nodes.push(xt);
+								}
+							})
+						}
+					})
+				})
+				$.each(name,function(num,em){
+					$.each(temp3,function(index,item){
+						if(em === item.text){
+							var flag = false;
+							$.each(newNode,function(nx,ex){
+								if(ex.text === em) {
+									var temp = item.nodes[0];
+									ex.nodes.push(temp);
+									flag = true;
+								}
+							})
+							if(!flag){
+								var y = item;
+								newNode.push(y);
+							}
+						}
+					})
+				})
+				$('#MenuTreeview').treeview({
+					silent: true,
+					showIcon: false,
+					hiearchivalcheck: true,
+					data: newNode,
+				});
+			}
+		})
+
+	})
+</script>
+
+</html>

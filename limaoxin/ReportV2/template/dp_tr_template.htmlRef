@@ -1,0 +1,27 @@
+
+											<tr class="read"  >
+												<td class="cell-check">
+													<input type="checkbox" class="inbox-checkbox" id = "$ID" name="$DPE">
+												</td>
+
+												<td class="cell-title">
+													$DPE
+												</td>
+												
+												<td class="cell-title">
+													$DES
+												</td>
+												
+												<td class="cell-title">
+													$L
+												</td>
+												
+												<td class="cell-title">
+													$M
+												</td>
+												
+												<td class="cell-title">
+													$H
+												</td>
+												
+											</tr> 

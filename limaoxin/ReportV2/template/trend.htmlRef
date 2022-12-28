@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="zh">
+    <head>
+      <meta charset="utf-8">
+      <title>WinCC OA SPC Report</title>  
+	  <style type="text/css">
+        input {
+            width: 80px; /* 宽度 */
+            height: 35px; /* 高度 */
+            border-width: 0px; /* 边框宽度 */
+            border-radius: 3px; /* 边框半径 */
+            background: #1E90FF; /**/ /* 背景颜色 */
+            cursor: pointer; /* 鼠标移入按钮范围时出现手势 */
+            outline: none; /* 不显示轮廓线 */
+            font-family: Microsoft YaHei; /* 设置字体 */
+            color: white; /* 字体颜色 */
+            font-size: 15px; /* 字体大小 */
+        }
+        html {
+            overflow-y: scroll;
+        }
+
+        :root body {
+                position: absolute;
+            }
+        body {
+            width: 99vw;
+            
+        }
+        .center-in-center {
+            position: absolute;
+            top: 5px;
+            right: 160px;
+            z-index: 50;
+        }
+        #head {
+            position: absolute;
+            top: 5px;
+            left: 10px;
+        }
+    </style>
+    </head>
+    
+    <body style="height: 100%; margin: 0">
+	<div id="head">
+    </div>
+	<div id="op">
+            <input type="button" class="center-in-center" name="export" value="导出" onclick="loadexcel()" />
+    </div>
+    <div id="container" style="height: 850px"></div>
+
+<script src="../js/jquery/3.4.1/jquery.js"></script> 
+<script src="../js/echarts/5.1.1/dist/echarts.min.js"></script> 
+<script src="../js/jquery/3.4.1/xlsx.core.min.js"></script>           
+<script type="text/javascript">
+
+		// 存储趋势数据
+		var jsonData = $jsonData; 
+		
+		var TrendGroupHeight  ; // 趋势组的高 
+		var TrendGroupTopHeight  ;
+		var TrendGroupBottomHeight  ;
+		var TrendGroupPositionTop = 200 ;
+		
+		var myChart; 
+		var app = {};
+		var option;
+		var grids = [];
+		var titles = []; 
+		var xAxies = [];
+		var yAxies = [];
+		var series = [];
+		var dataZooms = [];
+		var gridOption , xAxiesOption, seriesOption, yAxiesOption,titlesOption;
+		var count = 0;
+		var FORCE_UCL,FORCE_LCL;
+
+		function setOptionsConfig(withX) {
+			document.getElementById("head").innerHTML = "<font size=\"5\">" + jsonData.type + "</br></font><font size=\"4\">" + jsonData.TimeRange + "</font>";
+			if (withX) {
+
+                TrendGroupHeight = 400; // 趋势组的高
+                TrendGroupTopHeight = 250;
+                TrendGroupBottomHeight = 150;
+            }
+            else {
+
+                TrendGroupHeight = 400; // 趋势组的高
+                TrendGroupTopHeight = 250;
+            }
+
+
+			app = {};
+			option;
+			grids = [];
+			titles = []; 
+			xAxies = [];
+			yAxies = [];
+			series = [];
+			dataZooms = [];
+			gridOption  = null;
+			xAxiesOption = null;
+			seriesOption = null;
+			yAxiesOption = null 
+			titlesOption = null;
+			count = 0;
+
+
+		for (let i = 0; i < jsonData.value.length; i++) {  
+				// 极差的前两值用‘-’代替
+				jsonData.value[i].dataX[0] = '-';
+                jsonData.value[i].dataX[1] = '-';
+                FORCE_UCL = jsonData.value[i].FORCE_UCL;
+                FORCE_LCL = jsonData.value[i].FORCE_LCL;
+
+				dom = document.getElementById("container");
+                var el = document.createElement('div');
+                el.id = "main" + i;
+                el.className = "chart";
+                dom.appendChild(el);
+                var dv = document.getElementById("main" + i);
+
+
+                dv.style.height = "500px";
+               
+            
+                // 初始化echarts实例
+                var myChart = echarts.init(dv);
+                
+				var titleHTML;
+                titleHTML = "DPE：" + jsonData.value[i].dpe + "\n" +
+                    "描述:" + jsonData.value[i].dpeDescription + "    " +
+                    "样本数量:" + jsonData.value[i].count + "\n" +
+                    "最大值(Max):" + jsonData.value[i].max + "    " +
+                    "最小值(Min):" + jsonData.value[i].min + "    " +
+                    "平均值(X):" + jsonData.value[i].average + "    " +
+                    "样本标准差(σ):" + jsonData.value[i].SigmaValue + "  " +
+					 "Cpk|3σ:" + jsonData.value[i].Cpk3 + "\n" +
+                    "计算管制上限(UCL|" + jsonData.value[i].SigmaType + ")" + jsonData.value[i].FLOAT_UCL + "    " +
+                    "计算管制下限(LCL|" + jsonData.value[i].SigmaType + ")" + jsonData.value[i].FLOAT_LCL + "    " +
+                    "管制上限(UCL|" + jsonData.value[i].SigmaType + ")" + jsonData.value[i].FORCE_UCL + "    " +
+                    "管制下限(LCL|" + jsonData.value[i].SigmaType + ")" + jsonData.value[i].FORCE_LCL + "    " +
+                    "规格上限（USL）:" + jsonData.value[i].HIGH_SPECIFICATION + "    " +
+                    "规格下限（LSL）:" + jsonData.value[i].LOW_SPECIFICATION + "    " +
+					"规格中线（Target):" + jsonData.value[i].MIDDLE_SPECIFICATION + "    " +
+					"警告上限（UWL）: "+jsonData.value[i].warmUp+"		"+
+					"警告下限（LWL）: "+jsonData.value[i].warmDown+""+
+                    "剔除上限:" + jsonData.value[i].trendMax + "    " +
+                    "剔除下限:" + jsonData.value[i].trendMin + "\n" +
+                    
+                    
+					"数据方向: " + jsonData.value[i].Direction + "    "+
+					"SPC等级： "+jsonData.value[i].Class+"\n ";
+	
+				var option = {
+                    grid: {
+                        show: false,
+                        borderWidth: 1,
+                        shadowColor: 'rgb(0, 255, 255)',
+                        shadowBlur: 0,
+                        left: "7%",
+                        width: '70%',
+                        top: 200,
+                        height: 250
+
+                    },
+                    animation: false,
+					dataZoom:{
+						type:'inside',
+						orient:'vertical'
+					},
+                    tooltip: {
+                        trigger: 'axis'
+                    },
+                    legend: {
+                        data: []
+                    },
+                    toolbox: {
+                        show: true,
+                        feature: {
+
+                            dataZoom: {
+                                show: true
+                            },
+                            dataView: {
+                                readOnly: false
+                            },
+                            magicType: {
+                                type: ['line']
+                            },
+                            restore: {},
+                            saveAsImage: {}
+                        }
+                        
+                    },
+                    title: {
+                        show: true,
+                        textAlign: 'left',
+                        text: titleHTML,
+                        textStyle: {
+                            lineHeight: 20,
+                            fontSize: 14,
+                            fontWeight: 'bold'
+                        },
+                        left: '5%',
+                        top: 70
+
+                    },
+
+                    xAxis: {
+                        type: 'category',
+                        boundaryGap: false,
+                        show: true,
+                        data: jsonData.value[i].ts,
+                        //gridIndex: count
+                    },
+
+                    yAxis: {
+                        type: 'value',
+                        show: true,
+                        scale: true,
+                        //gridIndex: count,
+						//name:jsonData.value[i].UNIT,
+                        min: jsonData.value[i].visibleMin,
+                        max: jsonData.value[i].visibleMax,
+                        axisLabel: {
+                            interval: 0,
+							formatter:'{value}'+jsonData.value[i].UNIT,
+                        }
+                    },
+                    series: {
+                        name: jsonData.value[i].dpeDescription,
+                        type: 'line',
+                        symbol: "circle",
+                        //xAxisIndex: count,
+                        //yAxisIndex: count,
+                        showSymbol: true,
+                        legendHoverLink: true,
+                        clip: false, //  true：裁掉所有超出坐标系的折线部分，拐点图形的逻辑按照散点图处理
+                        data: jsonData.value[i].data,
+
+                        showAllSymbol: true,
+                        markPoint: {
+                            data: [
+                                { type: 'max', name: '最大值' },
+                                { type: 'min', name: '最小值' }
+                            ]
+                        },
+                        lineStyle: {
+                            width: 1,
+
+                        },
+                        markLine: {
+                            label: {
+                                formatter: ' {b},{c} ',
+                                color: 'rgb(3, 220, 20)',
+                            },
+                            symbol: ['none'],
+                            lineStyle: {
+                                color: 'rgb(3, 220, 20)',
+                                width: 1,
+                                type: 'dotted',
+                                fontStyle: 'italic'
+                            },
+                            data: [{
+                                name: '<-------------------------USL',
+                                yAxis: jsonData.value[i].HIGH_SPECIFICATION
+                            }, {
+                                name: '<-------------------------LSL',
+                                yAxis: jsonData.value[i].LOW_SPECIFICATION
+                            }, {
+                                name: '<-------------------------Target',
+                                yAxis: jsonData.value[i].MIDDLE_SPECIFICATION
+                            }, {
+                                name: 'UCL',
+                                yAxis: jsonData.value[i].FORCE_UCL
+                            }, {
+                                name: 'LCL',
+                                yAxis: jsonData.value[i].FORCE_LCL
+                            },{
+                                name: 'UWL',
+                                yAxis: jsonData.value[i].warmUp
+                            },{
+                                name: 'LWL',
+                                yAxis: jsonData.value[i].warmDown
+                            }
+                            ]
+
+                        },
+						
+
+                        markArea: {
+                            data: [
+                                [{
+                                    yAxis: jsonData.value[i].LOW_SPECIFICATION,
+                                    itemStyle: {
+                                        color: 'rgba(255, 255, 0, 0.3)'
+                                    }
+                                },
+                                {
+                                    yAxis: jsonData.value[i].FORCE_LCL
+                                }
+                                ],
+                                [{
+                                    yAxis: jsonData.value[i].FORCE_LCL,
+                                    itemStyle: {
+                                        color: 'rgba(10, 200, 20, 0.4)'
+                                    }
+                                },
+                                {
+                                    yAxis: jsonData.value[i].FORCE_UCL
+                                }
+                                ],
+                                [{
+                                    yAxis: jsonData.value[i].FORCE_UCL,
+                                    itemStyle: {
+                                        color: 'rgba(255, 255, 0, 0.3)'
+                                    }
+                                },
+                                {
+                                    yAxis: jsonData.value[i].HIGH_SPECIFICATION
+
+                                }]
+                            ]
+                        },
+                        label: {
+                            show: false,
+                            position: 'top',
+                            formatter: '{a}'
+
+                        },
+                        emphasis: {
+                            scale: false,
+                            focus: 'none',
+                            blurScope: 'coordinateSystem'
+                        }
+
+                    },
+                    visualMap: {
+                        show: false,
+                        dimension: 1,
+                        pieces: [
+                            { lt: jsonData.value[i].FORCE_LCL, color: 'red' },
+                            { gte: jsonData.value[i].FORCE_LCL, lt: jsonData.value[i].FORCE_UCL, color: 'blue' },
+                            { gte: jsonData.value[i].FORCE_UCL, color: 'red' }
+                        ],
+                        outOfRange: {
+                            color: 'red'
+                        },
+                        inRange: {
+                            color: 'blue'
+                        }
+                    }
+                    //visualMap: visualM
+                };
+                myChart.setOption(option);
+
+				if (0) {
+
+                    grids[i] = {
+                        show: true,
+                        borderWidth: 1,
+                        shadowColor: 'rgb(0, 255, 255)',
+                        shadowBlur: 0,
+                        left: '7%',
+                        width: '70%',
+                        top: 60,
+                        height: 250
+
+                    };
+
+                    xAxies[i] = {
+                        type: 'category',
+                        boundaryGap: false,
+                        show: true,
+                        data: jsonData.value[i].ts,
+                        //gridIndex: count
+
+                    };
+                    //var color = ["#5470c6", "#91cc75", "#fac858", "#ee6666", "#73c0de", "#3ba272", "#fc8452", "#9a60b4", "#ea7ccc"];
+
+
+                    series[i] = {
+                        name: '极差曲线',
+                        type: 'line',
+                        //xAxisIndex: count,
+                        //yAxisIndex: count,
+                        symbol: "circle",
+                        color: "#5470c6",
+                        showSymbol: true,
+                        legendHoverLink: true,
+                        clip: false, //  true：裁掉所有超出坐标系的折线部分，拐点图形的逻辑按照散点图处理
+                        data: jsonData.value[i].dataX,
+                        showAllSymbol: true,
+                        markPoint: {
+                            data: [
+                                { type: 'max', name: '最大值' },
+                                { type: 'min', name: '最小值' }
+                            ]
+                        },
+                        lineStyle: {
+                            width: 1,
+
+                        },
+                        label: {
+                            show: false,
+                            position: 'top',
+                            formatter: '{a}'
+
+                        },
+                        emphasis: {
+                            scale: false,
+                            focus: 'none',
+                            blurScope: 'coordinateSystem'
+                        }
+                    };
+
+                    yAxies[i] = {
+                        type: 'value',
+                        show: true,
+                        scale: true,
+                        //gridIndex: count,
+                        //min: jsonData.value[i].trendMin,
+                        //max: jsonData.value[i].trendMax,
+                        axisLabel: {
+                            interval: 0
+                        }
+                    };
+
+                    titles[i] = {
+                        show: true,
+                        textAlign: 'left',
+                        text: '极差曲线，R=Absolute(|V|n - V|n-1) ',
+                        textStyle: {
+                            fontSize: 14,
+                            fontWeight: 'bold'
+                        },
+                        left: '5%',
+                        top: 20,
+
+                    };
+
+
+                    grids.push(gridOption);
+                    xAxies.push(xAxiesOption);
+                    yAxies.push(yAxiesOption);
+                    series.push(seriesOption);
+                    titles.push(titlesOption);
+
+                    var option1 = {
+                        animation: false,
+                        tooltip: {
+                            trigger: 'axis'
+                        },
+                        legend: {
+                            data: []
+                        },
+                        toolbox: {
+                            show: true,
+                            feature: {
+
+                                dataZoom: {
+                                    show: true
+                                },
+                                dataView: {
+                                    readOnly: false
+                                },
+                                magicType: {
+                                    type: ['line']
+                                },
+                                restore: {},
+                                saveAsImage: {}
+                            }
+                        },
+                        title: titles[i],
+                        grid: grids[i],
+                        xAxis: xAxies[i],
+                        yAxis: yAxies[i],
+                        series: series[i],
+
+                    };
+                    myChart1.setOption(option1);
+                }
+			};
+		}
+
+
+		setOptionsConfig(true);
+
+
+function loadexcel() {
+                var arr = [];
+                arr[0] = ["DPE", "数据名称","平均值(Xbar)", "样本标准差(σ)", "样本容量", "计算管制上限", "CPK(3σ)", "计算管制下限"];
+                for (var i = 1; i <= jsonData.value.length; i++) {
+                    arr[i] = []; //每行有10列
+                    arr[i][0] = jsonData.value[i - 1].dpe;
+                    arr[i][1] = jsonData.value[i - 1].dpeDescription;
+                    arr[i][2] = jsonData.value[i - 1].average;
+                    arr[i][3] = jsonData.value[i - 1].SigmaValue;
+                    arr[i][4] = jsonData.value[i - 1].count;
+                    arr[i][5] = jsonData.value[i - 1].FORCE_UCL;
+                    arr[i][6] = jsonData.value[i - 1].Cpk3;
+					arr[i][7] = jsonData.value[i - 1].FORCE_LCL;
+                };
+                var sheet = XLSX.utils.aoa_to_sheet(arr);
+                openDownloadDialog(sheet2blob(sheet), 'SpcData' + jsonData.TimeRange + '.xlsx');
+            }
+
+        
+        // 将一个sheet转成最终的excel文件的blob对象，然后利用URL.createObjectURL下载
+        function sheet2blob(sheet, sheetName) {
+            sheetName = sheetName || 'sheet1';
+            var workbook = {
+                SheetNames: [sheetName],
+                Sheets: {}
+            };
+            workbook.Sheets[sheetName] = sheet;
+            // 生成excel的配置项
+            var wopts = {
+                bookType: 'xlsx', // 要生成的文件类型
+                bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+                type: 'binary'
+            };
+            var wbout = XLSX.write(workbook, wopts);
+            var blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+            // 字符串转ArrayBuffer
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+            return blob;
+        }
+
+        /**
+         * 通用的打开下载对话框方法，没有测试过具体兼容性
+         * @param url 下载地址，也可以是一个blob对象，必选
+         * @param saveName 保存文件名，可选
+         */
+        function openDownloadDialog(url, saveName) {
+            if (typeof url == 'object' && url instanceof Blob) {
+                url = URL.createObjectURL(url); // 创建blob地址
+            }
+            var aLink = document.createElement('a');
+            aLink.href = url;
+            aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+            var event;
+            if (window.MouseEvent) event = new MouseEvent('click');
+            else {
+                event = document.createEvent('MouseEvents');
+                event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            }
+            aLink.dispatchEvent(event);
+        }
+
+        function loadRemoteFile(url) {
+            readWorkbookFromRemoteFile(url, function (workbook) {
+                readWorkbook(workbook);
+            });
+        }
+
+
+        function exportSpecialExcel() {
+            var aoa = [
+                ['主要信息', null, null, '其它信息'], // 特别注意合并的地方后面预留2个null
+                ['姓名', '性别', '年龄', '注册时间'],
+                ['张三', '男', 18, new Date()],
+                ['李四', '女', 22, new Date()]
+            ];
+            var sheet = XLSX.utils.aoa_to_sheet(aoa);
+            sheet['!merges'] = [
+                // 设置A1-C1的单元格合并
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 2 } }
+            ];
+            openDownloadDialog(sheet2blob(sheet), '单元格合并示例.xlsx');
+        }
+</script>
+
+ 
+
+</body>
+</html>
+    

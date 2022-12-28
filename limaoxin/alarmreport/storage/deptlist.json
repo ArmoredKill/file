@@ -1,0 +1,6 @@
+{
+  "ME": ["CR","PEX","GHVAC","CUS","PCW","VOC","NMHC"],
+  "GC": ["GMS","CDS","SDS","FMCS"],
+  "Water": ["UPW","AMT","WWT","LK","PLB"],
+  "EE": ["PMS","PSO","I-Line"]
+}

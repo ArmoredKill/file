@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<link href="/data/ReportV2/js/bootstrap/3.3.4/dist/css/bootstrap.css" rel="stylesheet"> 
+<link href="/data/ReportV2/js/bootstrap/3.3.4/dist/css/theme.css" rel="stylesheet"> 
+<link href="/data/ReportV2/js/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.css" rel="stylesheet"> 
+<link href="/data/ReportV2/js/bootstrap-treeview-master/2.1.0/dist/bootstrap-treeview.css" rel="stylesheet">
+ 
+
+<head>
+    <meta charset="UTF-8"> 
+    <title>FMCS 报表系统V2</title>
+    <style type="text/css">
+
+html, body {
+    margin: 0;
+    height: 100% ;
+    background:  #879BAA;
+}
+
+canvas {
+    display: block;
+}
+
+.label {
+    margin-top: -20px;
+    color:  #fff;
+    border: 1px solid #fff;
+    padding: 3px 5px;
+    background: rgba(0, 0, 0, 0.6)
+}
+.label：hover {
+    font-size: 30px;
+    margin-top: -20px;
+    color:  #fff;
+    border: 1px solid #fff;
+    padding: 3px 5px;
+    background: rgba(255, 100, 0, 0.6)
+} 
+.navbar-brand{
+	line-height:30px;
+}
+    </style>
+	<link href="/data/ReportV2/js/layui/css/layui.css" rel="stylesheet" />
+</head>
+
+
+<script src="/data/ReportV2/js/jquery/3.4.1/jquery.js"></script>
+<script src="/data/ReportV2/js/bootstrap/3.3.4/dist/js/bootstrap.min.js"></script>  
+<script src="/data/ReportV2/js/bootstrap-treeview-master/2.1.0/dist/bootstrap-treeview.min.js"></script>
+<script src="/data/ReportV2/js/moment.js/moment-with-locales.min.js"></script>
+<script src="/data/ReportV2/js/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
+   
+  
+<body>  
+<script src="/data/ReportV2/js/jquery/3.4.1/xlsx.core.min.js"></script>   
+<script src="/data/ReportV2/js/layui/layui.js"></script>
+
+<nav class="navbar navbar-default ">
+  <div class="container-fluid">
+    <!-- Brand and toggle get grouped for better mobile display -->
+    <div class="navbar-header">
+      
+      <a class="navbar-brand" href="#" ">FMCS 报表系统</a>
+    </div>
+
+	
+    <!-- Collect the nav links, forms, and other content for toggling -->
+    <div class="collapse navbar-collapse" id="bs-example-navbar-collapse-1">
+      <ul class="nav navbar-nav">
+        <li class="active"><a href="#">SPC <span class="sr-only">(current)</span></a></li> 
+      </ul>
+	  <ul class="nav navbar-nav navbar-right">
+	  <li class="active"><a href="#"><div id="DivUsername"> </div>  </a></li>  	
+      </ul>
+		
+    </div><!-- /.navbar-collapse -->
+  </div><!-- /.container-fluid -->
+</nav>
+
+<div > &nbsp;  </div>
+
+
+
+
+
+<div class="container-fluid"> 
+
+	<div class="row" style="margin:20px; "  > 
+		 
+
+			<div class="col-md-4" id="DivDpe">
+				
+				<div class="content">
+					
+					<!--	<button class="btn btn-default btn-block btn-danger" id="DivDpeClose">关闭</button>  -->
+					<div class="module message"  style="margin:0px; " >
+						<div class="module-head" >
+							<h2> DP选择</h2> 
+						</div> 
+						<div class="module-body table">
+							 <div id='div_layer'>
+								<div id='MenuTreeview' class='treeview' style="overflow:scroll;"> </div>
+							 </div>
+							 
+						</div>
+						<div class="module-foot"  > 
+						<!--		<button class="btn btn-default btn-block btn-danger" id="DivDpeClose2">关闭</button>   -->
+							 
+						</div>
+					</div>
+				</div>
+				<!--/.content-->
+			</div>  
+		
+			<div class="col-md-8">
+			
+				<div class="content"> 
+					<div class="module message">
+						<div class="module-head">
+							<h2> 已选择DPE</h2>
+						</div> 
+						<div class="module-body table">   
+							<table class="table table-message" id= "selectedDPE" >
+								<tbody>
+									<tr class="heading">  
+										<td class="cell-title">
+											ID
+										</td>
+										<td class="cell-title">
+											DPE
+										</td>  
+									</tr> 
+								</tbody>
+							</table> 
+						</div> 
+					</div> 
+				</div>
+				<!--/.content-->  
+				
+				<div class="content">
+					<div class="module message">
+						<div class="module-head">
+							<h2>  时间 </h2>
+						</div> 
+						<div class="module-body table">
+							 
+							 <div class="row"> 
+							 
+								<div class='col-sm-3' style="margin:10px;" >
+									<div class="form-group" >
+										<label>选择起始时间：</label>
+										<!--指定 date标记-->
+										<div class='input-group date' id='datetimepicker1'>
+											<input type='text' class="form-control" id = "startTime" />
+											<span class="input-group-addon">
+												<span class="glyphicon glyphicon-calendar"></span>
+											</span>
+										</div>
+									</div>
+								</div>
+								 
+								<div class="col-sm-3" style="margin:10px;" >
+									<div class="form-group"  >
+										<label>选择终止时间：</label> 
+										<div class='input-group date' id='datetimepicker2'>
+											<input type='text' class="form-control" id = "endTime" />
+											<span class="input-group-addon">
+												<span class="glyphicon glyphicon-calendar"></span>
+											</span>
+										</div>
+										
+									</div>
+								</div>
+							</div>
+							<div class="row">
+								<!--
+								<div class="col-sm-2 " style="margin:10px;">
+									<div class="form-group"  >
+										<label>DPE</label>   
+											<button class="btn btn-default btn-block btn-primary" id="dpeSelectTreeBtn">选择</button>   
+									</div>
+								</div>-->
+								 
+							</div>
+							  
+							
+							 
+						</div>
+						<div class="module-foot">
+						</div>
+					</div>
+				</div> 
+				<div class="content"> 
+					<div class="module message">
+						<div class="module-head">
+							<h2> 查询</h2>
+						</div>  
+						<div class="row"> 
+							<div class="col-sm-4 " style="margin:10px;">
+							
+								<button class="btn btn-lg btn-block btn-success" id="queryWinCCOA">生成SPC趋势（分钟）</button>   
+								
+							</div>
+						
+							<div class="col-sm-4 " style="margin:10px;"  > 
+							    <button class="btn btn-lg btn-block btn-success" id="queryWinCCOAHour">生成SPC趋势（小时）</button>   
+							</div>
+							<div class="col-sm-4 " style="margin:10px;"  > 
+							    <button class="btn btn-lg btn-block btn-primary" id="exportMin">导出表格（分钟）</button>   
+							</div>
+							<div class="col-sm-4 " style="margin:10px;"  > 
+							    <button class="btn btn-lg btn-block btn-primary" id="exportHour">导出表格（小时）</button>   
+							</div>
+							
+							
+							<div class="col-sm-12 " style="margin:10px;" id ="query_div" > 
+							     
+							</div>
+							
+								
+						</div>
+					</div> 
+				</div>
+				<!--/.content-->  
+			
+			
+			
+				<!--/.content-->
+				<div class="content"> 
+					<div class="module message">
+						<div class="module-head">
+							<h2> 历史查询记录（暂留1小时） </h2>
+						</div> 
+						<div class="module-body table">   
+							<table class="table table-message" id= "reportTable" >
+								<tbody>
+									<tr class="heading">  
+										<td class="cell-title">
+											ID
+										</td>
+										<td class="cell-title">
+											报表
+										</td> 
+										<td class="cell-title">
+											创建时间
+										</td>  
+									</tr> 
+								</tbody>
+							</table> 
+						</div> 
+					</div> 
+				</div>
+				<!--/.content--> 
+			</div> 
+		<div class="row" style="margin:20px;"  id="noSelDp">  
+			
+			
+			<!--/.col-->
+		</div>
+			
+			<div class="col-md-5 "> 
+			</div>
+			<!--/.col-->
+			    
+		
+		
+		<div class="row" style="margin:20px;"  id="noSelDp">  
+			<div class="col-md-5 "> 
+				<div class="content">  
+				
+									 
+				</div> 
+			</div> 
+		</div>  
+		
+		
+	</div>
+</div>
+<!--/.container--> 
+			
+			
+
+
+</body> 
+ 
+
+<script type="text/javascript"> 
+var dpeList=[];
+var dpeGroup = [];
+
+Array.prototype.indexOf = function(val) {
+for (var i = 0; i < this.length; i++) {
+if (this[i] == val) return i;
+}
+return -1;
+};
+
+Array.prototype.remove = function(val) {
+var index = this.indexOf(val);
+if (index > -1) {
+this.splice(index, 1);
+}
+};
+ 
+Array.prototype.append = function(val) {
+var index = this.indexOf(val);
+if (index == -1) {
+this.push( val );
+}
+};
+ 
+ 
+$(document).ready(function(){ 
+
+
+ 
+	$.ajax({
+		type:    "GET",
+		url:     encodeURI("/getReportMenu"),
+		success: function(data) { 
+				 var nodeList = JSON.parse(data);
+				 // console.log(nodeList);
+				 var checkableTree = $('#MenuTreeview').treeview({
+					data: nodeList, 
+					silent:true,
+					showIcon: false,
+					hiearchivalcheck:true,
+					icon: "glyphicon glyphicon-stop",
+					showCheckbox: true,
+					onNodeChecked: function(event, node) {
+						if(node.level == 1){
+							for (let i = 0; i < node.nodes.length; i++) {
+								$('#MenuTreeview').treeview('checkNode', node.nodes[i]);
+								
+							}
+						}
+						if(node.level == 2){
+							for (let i = 0; i < node.nodes.length; i++) {
+								$('#MenuTreeview').treeview('checkNode', node.nodes[i]);
+								
+							}
+						}
+						if(node.level == 3){
+							//dpeList.append( node.text);
+							
+							for (let i = 0; i < node.nodes.length; i++) {
+								 $('#MenuTreeview').treeview('checkNode', node.nodes[i]);
+								 //dpeList.append(node.nodes[i].nodes[0].text);
+							}
+							
+						}
+						if(node.level == 4) {
+						   
+							var groupName = $('#MenuTreeview').treeview('getParents', node)[0].text  +"-"+ node.text;
+						 	dpeList.remove(groupName);
+							for (let i = 0; i < node.nodes.length; i++) {  
+								dpeList.remove(node.nodes[i].text);  
+							}
+							
+							for (let i = 0; i < node.nodes.length; i++) {
+								if(!node.nodes[i].state.disabled)
+								{ 
+								  //dpeList.append(node.nodes[i].text);  
+								  $('#MenuTreeview').treeview('checkNode', node.nodes[i]);
+								}
+							}
+							
+							//dpeList.append("DPE GROUP:" + groupName);
+							 
+						} 
+						if(node.level == 5) { 
+							
+							dpeList.append(node.text); 
+							
+						} 
+						
+						updateSelectedDPEList(); 
+						
+					}, 
+					onNodeUnchecked: function (event, node) {
+					
+						if(node.level == 1){
+							for (let i = 0; i < node.nodes.length; i++) {
+								$('#MenuTreeview').treeview('checkNode', [ node.nodes[i], { silent: true } ]);
+								$('#MenuTreeview').treeview('uncheckNode', node.nodes[i]);
+							}
+						}
+						if(node.level == 2){
+							for (let i = 0; i < node.nodes.length; i++) {
+								$('#MenuTreeview').treeview('checkNode', [ node.nodes[i], { silent: true } ]);
+								$('#MenuTreeview').treeview('uncheckNode', node.nodes[i]);
+							}
+						}
+						if(node.level == 3){
+							//dpeList.remove(node.text); 
+							for (let i = 0; i < node.nodes.length; i++) {  
+								 
+								//dpeList.remove(node.nodes[i].nodes[0].text);
+								$('#MenuTreeview').treeview('checkNode', [ node.nodes[i], { silent: true } ]);
+								$('#MenuTreeview').treeview('uncheckNode', node.nodes[i]);
+								
+							} 
+							//dpeList.remove("DPE GROUP:" + node.text);
+							
+						}					
+						if(node.level == 4) { 
+						    
+							var groupName = $('#MenuTreeview').treeview('getParents', node)[0].text  +"-"+ node.text; 
+							//dpeList.remove("DPE GROUP:" + groupName);
+							for (let i = 0; i < node.nodes.length; i++) {  
+								//dpeList.remove(node.nodes[i].text); 
+								$('#MenuTreeview').treeview('checkNode', [ node.nodes[i], { silent: true } ]);	
+								$('#MenuTreeview').treeview('uncheckNode', node.nodes[i]);								
+								
+								
+							} 
+							
+							
+						} 
+						if(node.level == 5) { 
+							
+							dpeList.remove(node.text);
+							
+													
+						} 
+						
+						updateSelectedDPEList(); 
+						
+					} 
+					
+				});
+
+		}, 
+		error : function(error) {  
+		} 
+	
+	});
+  
+	updateReportList();
+
+ // $("#DivDpe").hide();
+
+
+ 
+});
+
+ 
+// 图层窗口-关闭
+	$("#DivDpeClose").click(function(){
+	   $("#DivDpe").hide();
+	});
+	 
+	$("#DivDpeClose2").click(function(){
+	   $("#DivDpe").hide();
+	});
+	 
+		
+// 图层窗口-打开
+	$("#dpeSelectTreeBtn").click(function(){
+	   $("#DivDpe").show();
+	});
+	
+	
+	
+$("#all").change(function(){ 
+   for(let i = 1 , r = $("#dpeTable").find("tr").length ; i <= r ;i++){ 
+	$("#dpeID"+i+":checkbox").prop("checked",$(this).prop("checked") ); 
+   }
+ 
+}); 
+
+$("#queryWinCCOA").click(function(){   
+	 
+	var selectedDpName = dpeList;
+	 
+	//未选择DP！
+	if(selectedDpName.length == 0)
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningNoDpSelected.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	// 开始时间> 结束时间
+	if(new Date($("#startTime").val()) > new Date($("#endTime").val()) )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( $("#startTime").val() == ""  ||  $("#endTime").val() == ""   )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( new Date( $("#startTime").val() )  >  new Date(  $("#endTime").val() )     )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError2.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	$.ajax({
+		url : "/data/ReportV2/infoCreatingReport.html",  
+		success : function(content) {
+			$("#query_div").append(content); 
+		}
+	});
+	 
+					
+	$.ajax({
+		url : "/FMCS_SPC",
+		cache : false,
+		type : 'POST',
+		data : "json="+JSON.stringify({
+			"dpList":selectedDpName, 
+			"type":"MinuteReport", 
+			"startTime": $("#startTime").val(),
+			"endTime": $("#endTime").val(),
+		}),
+		success : function(html) {
+			var ret = JSON.parse(html)
+			//console.log(ret);
+			if(ret["result"] == "ok")
+			{
+				$.ajax({
+				url : "/data/ReportV2/infoCreatingReportDone.html",  
+				success : function(content) {
+					$("#query_div").append(content); 
+				} 
+				}); 
+				updateReportList();
+				window.open("/data/ReportV2/SPC/" + ret["data"] ); 
+			}			
+			else
+			{
+			  alert("SPC返回错误," +ret["result"]+"\n" +  ret["data"]);
+			  console.log(ret["result"]);
+			  console.log(ret["data"]);
+			}
+			 
+		},
+		error : function(error) {
+			alert("提交失败"+JSON.stringify(error));
+		}
+   });    
+});  
+
+ 
+
+$("#queryWinCCOAHour").click(function(){   
+	 
+	var selectedDpName = dpeList;
+	 
+	//未选择DP！
+	if(selectedDpName.length == 0)
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningNoDpSelected.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	// 开始时间> 结束时间
+	if(new Date($("#startTime").val()) > new Date($("#endTime").val()) )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( $("#startTime").val() == ""  ||  $("#endTime").val() == ""   )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( new Date( $("#startTime").val() )  >  new Date(  $("#endTime").val() )     )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError2.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	$.ajax({
+		url : "/data/ReportV2/infoCreatingReport.html",  
+		success : function(content) {
+			$("#query_div").append(content); 
+		}
+	});
+	 
+					
+	$.ajax({
+		url : "/FMCS_SPC",
+		cache : false,
+		type : 'POST',
+		data : "json="+JSON.stringify({
+			"dpList":selectedDpName, 
+			"type":"HourReport", 
+			"startTime": $("#startTime").val(),
+			"endTime": $("#endTime").val(),
+		}),
+		success : function(html) {
+			var ret = JSON.parse(html)
+			//console.log(ret);
+			if(ret["result"] == "ok")
+			{
+				$.ajax({
+				url : "/data/ReportV2/infoCreatingReportDone.html",  
+				success : function(content) {
+					$("#query_div").append(content); 
+				} 
+				}); 
+				updateReportList();
+				window.open("/data/ReportV2/SPC/" + ret["data"] ); 
+			}			
+			else
+			{
+			  alert("SPC返回错误," +ret["result"]+"\n" +  ret["data"]);
+			}
+			 
+		},
+		error : function(error) {
+			alert("提交失败"+JSON.stringify(error));
+		}
+   });    
+});  
+
+ 
+
+	
+$('#datetimepicker1').datetimepicker({
+	format: 'YYYY-MM-DD HH:mm:ss',
+	locale: moment.locale('zh-CN')
+});
+ 
+$('#datetimepicker2').datetimepicker({
+	format: 'YYYY-MM-DD HH:mm:ss',
+	locale: moment.locale('zh-CN')
+});
+
+$.ajax({
+	url : "/getUserData",  
+	success : function(HTML) {  
+		if(HTML != "")
+		{ 	 
+		 divUsername =    HTML ;
+		 
+			$('#DivUsername').append(divUsername); 
+		    // console.log(HTML);
+		}
+	} 
+}); 
+
+
+function updateReportList(){ 
+	function convertTime(jsonTime, format) {
+     return new Date( jsonTime.replace("T", " ").replace("Z", "") ).toTimeString();
+      
+	}
+
+	$('#reportTable tr:not(:first)').remove();  
+	
+	$.ajax({
+		url : "/getSPCList",  
+		success : function(HTML) {  
+			if(HTML != "")
+			{ 	
+				var list = JSON.parse(HTML);
+				// console.log(list);
+				for(let i = 0; i<list.filename.length;i++)
+				{  
+					var row="<tr><td>"+(i+1)+"</td><td>"+list.filename[i]+"</td><td>"+  list.filetime[i].replace("T"," ").replace(".000Z","")  +"</td></tr>" ;
+					$(row).insertAfter($("#reportTable tr:eq("+i+")"));  
+				} 						
+			}
+		} 
+	}); 
+}
+
+function updateSelectedDPEList(){  
+	$('#selectedDPE tr:not(:first)').remove(); 
+	for(let i = 0; i< dpeList.length; i++)
+	{ 
+		var row="<tr><td>"+(i+1)+"</td><td><font color = 'green'>"+dpeList[i]+"</font></td></tr>" ;
+		$(row).insertAfter($("#selectedDPE tr:eq("+i+")")); 
+	}
+}
+
+
+$('#reportTable').on('click','td', function() {
+				
+			// console.log($(this).text());
+			if($(this).text().search(".html")>0 ){
+			    
+				window.open("/data/ReportV2/SPC/" + $(this).text());  
+			}
+});	
+
+
+$("#exportMin").click(function(){   
+	 
+	var selectedDpName = dpeList;
+	 
+	//未选择DP！
+	if(selectedDpName.length == 0)
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningNoDpSelected.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	// 开始时间> 结束时间
+	if(new Date($("#startTime").val()) > new Date($("#endTime").val()) )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( $("#startTime").val() == ""  ||  $("#endTime").val() == ""   )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( new Date( $("#startTime").val() )  >  new Date(  $("#endTime").val() )     )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError2.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	 
+	$.ajax({
+		url : "/data/ReportV2/infoCreatingExportReport.html",  
+		success : function(content) {
+			$("#query_div").append(content); 
+		}
+	});		
+	
+	$.ajax({
+		url : "/FMCS_SPCExcelData",
+		cache : false,
+		type : 'POST',
+		data : "json="+JSON.stringify({
+			"dpList":selectedDpName, 
+			"type":"MinuteReport", 
+			"startTime": $("#startTime").val(),
+			"endTime": $("#endTime").val(),
+		}),
+		success : function(html) {
+			var ret = JSON.parse(html)
+			if(ret["result"] == "ok")
+			{
+				var r=JSON.parse(ret["data"]);
+				loadexcel(r);
+				$.ajax({
+					url : "/data/ReportV2/infoCreatingExportReportDone.html",  
+					success : function(content) {
+					$("#query_div").append(content); 
+					}
+	});
+			}			
+			else
+			{
+			  alert("SPC返回错误," +ret["result"]+"\n" +  ret["data"]);
+			  console.log(ret["result"]);
+			  console.log(ret["data"]);
+			}
+			 
+		},
+		error : function(error) {
+			alert("提交失败"+JSON.stringify(error));
+		}
+   });    
+});  
+
+$("#exportHour").click(function(){   
+	 
+	var selectedDpName = dpeList;
+	 
+	//未选择DP！
+	if(selectedDpName.length == 0)
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningNoDpSelected.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	// 开始时间> 结束时间
+	if(new Date($("#startTime").val()) > new Date($("#endTime").val()) )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		}); 
+		return;
+	}  
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( $("#startTime").val() == ""  ||  $("#endTime").val() == ""   )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	
+	
+	
+	// 开始时间  结束时间 判断有误？
+	if( new Date( $("#startTime").val() )  >  new Date(  $("#endTime").val() )     )
+	{
+	
+		$.ajax({
+			url : "/data/ReportV2/warningTimeError2.html",  
+			success : function(content) {
+				$("#query_div").append(content); 
+			} 
+		});
+   
+		
+		return;
+	}  
+	 
+	$.ajax({
+		url : "/data/ReportV2/infoCreatingExportReport.html",  
+		success : function(content) {
+			$("#query_div").append(content); 
+		}
+	});		
+	
+	$.ajax({
+		url : "/FMCS_SPCExcelData",
+		cache : false,
+		type : 'POST',
+		data : "json="+JSON.stringify({
+			"dpList":selectedDpName, 
+			"type":"HourReport", 
+			"startTime": $("#startTime").val(),
+			"endTime": $("#endTime").val(),
+		}),
+		success : function(html) {
+			var ret = JSON.parse(html)
+			if(ret["result"] == "ok")
+			{
+				var r=JSON.parse(ret["data"]);
+				loadexcel(r);
+				$.ajax({
+					url : "/data/ReportV2/infoCreatingExportReportDone.html",  
+					success : function(content) {
+					$("#query_div").append(content); 
+					}
+	});
+			}			
+			else
+			{
+			  alert("SPC返回错误," +ret["result"]+"\n" +  ret["data"]);
+			  console.log(ret["result"]);
+			  console.log(ret["data"]);
+			}
+			 
+		},
+		error : function(error) {
+			alert("提交失败"+JSON.stringify(error));
+		}
+   });    
+});  
+
+
+
+		function loadexcel(jsonData) {
+                var arr = [];
+                arr[0] = ["DPE", "数据名称","平均值(Xbar)", "样本标准差(σ)", "样本容量", "计算管制上限", "CPK(3σ)", "计算管制下限","UCL","LCL","UCL数量","LCL数量","USL","LSL","USL数量","LSL数量","时间范围"];
+                for (var i = 1; i <= jsonData.value.length; i++) {
+                    arr[i] = []; //每行有10列
+                    arr[i][0] = jsonData.value[i - 1].dpe;
+                    arr[i][1] = jsonData.value[i - 1].dpeDescription;
+                    arr[i][2] = jsonData.value[i - 1].average;
+                    arr[i][3] = jsonData.value[i - 1].SigmaValue;
+                    arr[i][4] = jsonData.value[i - 1].count;
+                    arr[i][5] = jsonData.value[i - 1].FLOAT_UCL;
+                    arr[i][6] = jsonData.value[i - 1].Cpk3;
+					arr[i][7] = jsonData.value[i - 1].FLOAT_LCL;
+					arr[i][8] = jsonData.value[i - 1].FORCE_UCL;
+					arr[i][9] = jsonData.value[i - 1].FORCE_LCL;
+					arr[i][10] = jsonData.value[i - 1].OOS_Count_UCL;
+					arr[i][11] = jsonData.value[i - 1].OOS_Count_LCL;
+					arr[i][12] = jsonData.value[i - 1].HIGH_SPECIFICATION;
+					arr[i][13] = jsonData.value[i - 1].LOW_SPECIFICATION;
+					arr[i][14] = jsonData.value[i - 1].OOS_Count_USL;
+					arr[i][15] = jsonData.value[i - 1].OOS_Count_LSL;
+					arr[i][16] = jsonData.TimeRange;
+                };
+                var sheet = XLSX.utils.aoa_to_sheet(arr);
+                openDownloadDialog(sheet2blob(sheet), 'SpcData' + jsonData.TimeRange + '.xlsx');
+            }
+
+        
+        // 将一个sheet转成最终的excel文件的blob对象，然后利用URL.createObjectURL下载
+        function sheet2blob(sheet, sheetName) {
+            sheetName = sheetName || 'sheet1';
+            var workbook = {
+                SheetNames: [sheetName],
+                Sheets: {}
+            };
+            workbook.Sheets[sheetName] = sheet;
+            // 生成excel的配置项
+            var wopts = {
+                bookType: 'xlsx', // 要生成的文件类型
+                bookSST: false, // 是否生成Shared String Table，官方解释是，如果开启生成速度会下降，但在低版本IOS设备上有更好的兼容性
+                type: 'binary'
+            };
+            var wbout = XLSX.write(workbook, wopts);
+            var blob = new Blob([s2ab(wbout)], { type: "application/octet-stream" });
+            // 字符串转ArrayBuffer
+            function s2ab(s) {
+                var buf = new ArrayBuffer(s.length);
+                var view = new Uint8Array(buf);
+                for (var i = 0; i != s.length; ++i) view[i] = s.charCodeAt(i) & 0xFF;
+                return buf;
+            }
+            return blob;
+        }
+
+        /**
+         * 通用的打开下载对话框方法，没有测试过具体兼容性
+         * @param url 下载地址，也可以是一个blob对象，必选
+         * @param saveName 保存文件名，可选
+         */
+        function openDownloadDialog(url, saveName) {
+            if (typeof url == 'object' && url instanceof Blob) {
+                url = URL.createObjectURL(url); // 创建blob地址
+            }
+            var aLink = document.createElement('a');
+            aLink.href = url;
+            aLink.download = saveName || ''; // HTML5新增的属性，指定保存文件名，可以不要后缀，注意，file:///模式下不会生效
+            var event;
+            if (window.MouseEvent) event = new MouseEvent('click');
+            else {
+                event = document.createEvent('MouseEvents');
+                event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+            }
+            aLink.dispatchEvent(event);
+        }
+
+        function loadRemoteFile(url) {
+            readWorkbookFromRemoteFile(url, function (workbook) {
+                readWorkbook(workbook);
+            });
+        }
+		
+		
+
+						 
+
+</script>  
+</html>

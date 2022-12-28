@@ -1,0 +1,3028 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<panel version="14">
+ <properties>
+  <prop name="Name">
+   <prop name="en_US.utf8"></prop>
+   <prop name="zh_CN.utf8"></prop>
+  </prop>
+  <prop name="Size">1277 782</prop>
+  <prop name="BackColor">_3DFace</prop>
+  <prop name="RefPoint">70 85</prop>
+  <prop name="InitAndTermRef">True</prop>
+  <prop name="SendClick">False</prop>
+  <prop name="RefFileName"></prop>
+  <prop name="DPI">96</prop>
+  <prop name="layoutType">None</prop>
+ </properties>
+ <events>
+  <script name="ScopeLib" isEscaped="1"><![CDATA[// SPC Version 1.1
+// author:zhigang-li@siemens.com
+//
+// 问题列表:
+// 规格方向
+//
+// v1.2 存档间隔, 分钟, 小时节目完善;
+// 连续异常报警功能先不用了。
+//
+// v1.1
+// 课，子系统的添加，删除
+// SPC点位的添加，删除，修改
+// SPC总表的保存，刷新。
+// 添加属性“sysId”， 用来标记隶属的FMCS子系统。如MEP:
+//
+// v1.0
+// SPC剔除上限，剔除下限，规格上限（USL），规格中线，规格下限（LSL）
+// UCL, LCL
+// Web Client
+//
+
+ string newAddedId3,newAddedId4;
+ dyn_mapping dmJsonBuf;
+
+ bool debugFlag = true;
+ dyn_mapping m1, m2, m3, m4;
+ mapping m;
+ string L1,L2,L3;
+
+  // 1,2,3,是控件的列的数量。
+  mapping mColumnNameCN;
+
+
+// 删除DPE
+// zhigang-li@siemens.com
+SPC_DeleteDpe()
+{
+
+  mapping m1,m2,m3,m4;
+
+
+  // 初始化，获得界面参数
+  string comboBoxDepartmentSelectedText;
+  string comboBoxSubSystemSelectedText;
+
+  string dpe = txtDPE.text;
+  string description = txtDesc.text;
+  string HIGH_SPECIFICATION = txtHighSetpoint.text;
+  string MIDDLE_SPECIFICATION = txtMiddleSetpoint.text;
+  string LOW_SPECIFICATION = txtLowSetpoint.text;
+  string trendMin = txtTrendMin.text;
+  string trendMax = txtTrendMax.text;
+  string department = comboBoxDepartment.selectedText();
+  string subSystem = comboBoxSubSystem.selectedText();
+
+  // DebugN(dpe, description, HIGH_SPECIFICATION,MIDDLE_SPECIFICATION,LOW_SPECIFICATION,trendMin, trendMax , department, subSystem);
+
+  // 1. 是否找到 department？
+  for(int i = 1; i &lt;= dynlen(dmJsonBuf); i++)
+  {
+    // 找课别
+    if( dmJsonBuf[i][&quot;text&quot;] == department )
+    {
+
+      if(debugFlag) DebugN(&quot;Found department--&quot;, department);
+      for(int j = 1; j &lt;= dynlen(dmJsonBuf[i][&quot;nodes&quot;]); j++)
+      {
+        // 找子系统
+        if(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;text&quot;] == subSystem)
+        {
+
+          if(debugFlag) DebugN(&quot;Found subSystem--&quot;, subSystem);
+           // 是否存在dpe？
+          for(int k = 1; k &lt;= dynlen( dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;] ); k++)
+          {
+                // 相同dpe
+                if( (dpe == dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;text&quot;] ) ||
+                    (description == dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;text&quot;] ) )
+                {
+                   string uuid3 = dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;uuid&quot;];
+                   string uuid4 = dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;uuid&quot;];
+
+                   dynRemove(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;],k);
+
+                   TREE1.setForeColor(uuid3, 0, &quot;red&quot;);
+                   TREE1.setForeColor(uuid4, 0, &quot;red&quot;);
+                   btSave.enabled = true;
+
+                   return;
+
+
+                   //;
+               }
+         }
+
+       }
+
+      }
+
+
+
+    }
+
+
+  }
+
+
+}
+
+
+// 修改DPE
+// zhigang-li@siemens.com
+SPC_ModifyDpe()
+{
+
+  mapping m1,m2,m3,m4;
+
+
+  // 初始化，获得界面参数
+  string comboBoxDepartmentSelectedText;
+  string comboBoxSubSystemSelectedText;
+
+  string dpe = txtDPE.text;
+  string description = txtDesc.text;
+  string HIGH_SPECIFICATION = txtHighSetpoint.text;
+  string MIDDLE_SPECIFICATION = txtMiddleSetpoint.text;
+  string LOW_SPECIFICATION = txtLowSetpoint.text;
+  string trendMin = txtTrendMin.text;
+  string trendMax = txtTrendMax.text;
+  string department = comboBoxDepartment.selectedText();
+  string subSystem = comboBoxSubSystem.selectedText();
+  string sysId = txtSysId.text;
+  string direction = comboBoxDirection.text;
+  string sigma = comboSigma.text;
+  string visibleMax = txtVisibleMax.text;
+  string visibleMin = txtVisibleMin.text;
+  string force_UCL = txtUCL.text;
+  string force_LCL = txtLCL.text;
+  string force_Middle = txtMiddle.text;
+  string warmUp=txtWarmUp.text;
+  string warmDown=txtWarmDown.text;
+
+  if( (dpe == &quot;&quot;) ||
+        (description == &quot;&quot;) ||
+        (HIGH_SPECIFICATION == &quot;&quot;) ||
+        (MIDDLE_SPECIFICATION == &quot;&quot;) ||
+        (LOW_SPECIFICATION == &quot;&quot;) ||
+        (trendMin == &quot;&quot;) ||
+        (trendMax == &quot;&quot;) ||
+        (department == &quot;&quot;) ||
+        (subSystem == &quot;&quot;)  ||
+        (force_UCL == &quot;&quot;)  ||
+        (force_LCL == &quot;&quot;)  ||
+        (force_Middle == &quot;&quot;)  ||
+        (sigma == &quot;选择&quot;)   ||
+        (visibleMax == &quot;&quot;)   ||
+        (visibleMax == &quot;&quot;)    )
+    {
+
+     ChildPanelOnCentralModal(&quot;vision/messages/MessageInfo1.pnl&quot;, &quot;&quot;, makeDynString(&quot;$1:检查数据是否为空\n&quot;+dpe+&quot;\n无法保存!&quot;));
+     return;
+    }
+  // DebugN(dpe, description, HIGH_SPECIFICATION,MIDDLE_SPECIFICATION,LOW_SPECIFICATION,trendMin, trendMax , department, subSystem);
+
+  // 1. 是否找到 department？
+  for(int i = 1; i &lt;= dynlen(dmJsonBuf); i++)
+  {
+    // 找课别
+    if( dmJsonBuf[i][&quot;text&quot;] == department )
+    {
+
+      for(int j = 1; j &lt;= dynlen(dmJsonBuf[i][&quot;nodes&quot;]); j++)
+      {
+        // 找子系统
+        if(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;text&quot;] == subSystem)
+        {
+
+           // 是否存在dpe？
+          for(int k = 1; k &lt;= dynlen( dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;] ); k++)
+          {
+                // 相同dpe
+                if( (dpe         == dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;text&quot;] )   )
+                {
+
+
+               string parentId = dmJsonBuf[i][&quot;nodes&quot;][j][&quot;uuid&quot;];
+
+//            DebugN(&quot;相同dpe-- &quot;, department,subSystem, dpe,
+//                    parentId,
+//                   description, HIGH_SPECIFICATION,
+//                   MIDDLE_SPECIFICATION,LOW_SPECIFICATION,
+//                   trendMin, trendMax ,
+//                   department, subSystem);
+
+
+               mapping m4 = makeMapping(  &quot;text&quot;, dpe,
+                                       &quot;selectable&quot;, false ,
+                                       &quot;checkable&quot;, true,
+                                       &quot;LOW_SPECIFICATION&quot;, LOW_SPECIFICATION,
+                                       &quot;MIDDLE_SPECIFICATION&quot;, MIDDLE_SPECIFICATION,
+                                       &quot;HIGH_SPECIFICATION&quot;,HIGH_SPECIFICATION,
+                                       &quot;trendMin&quot;, trendMin,
+                                       &quot;trendMax&quot;, trendMax,
+                                       &quot;sysId&quot;, sysId,
+                                       &quot;sigma&quot;,sigma,
+                                       &quot;visibleMax&quot;,visibleMax,
+                                       &quot;visibleMin&quot;,visibleMin,
+                                       &quot;direction&quot;, direction,
+                                       &quot;force_UCL&quot;, force_UCL,
+                                       &quot;force_LCL&quot;, force_LCL,
+                                       &quot;force_Middle&quot;, force_Middle,
+                                       &quot;warmUp&quot;,warmUp,
+                                       &quot;warmDown&quot;,warmDown,
+                                       &quot;uuid&quot;,  dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;uuid&quot;],
+                                       &quot;state&quot;, makeMapping(&quot;disabled&quot;,false ));
+
+               dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1] = m4;
+
+               dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;text&quot;] = description;
+
+               TREE1.setForeColor(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;uuid&quot;], 0, &quot;green&quot;);
+               TREE1.setForeColor(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;uuid&quot;], 0, &quot;green&quot;);
+
+               btSave.enabled = TRUE;
+               return;
+
+
+               //;
+           }
+         }
+
+       }
+
+      }
+
+
+
+    }
+
+
+  }
+
+
+}
+
+// 添加新DPE
+// zhigang-li@siemens.com
+SPC_AddNewDpe()
+{
+
+
+  mapping m1,m2,m3,m4;
+
+
+  // 初始化，获得界面参数
+  string comboBoxDepartmentSelectedText;
+  string comboBoxSubSystemSelectedText;
+
+  string dpe = txtDPE.text;
+  string description = txtDesc.text;
+  string HIGH_SPECIFICATION = txtHighSetpoint.text;
+  string MIDDLE_SPECIFICATION = txtMiddleSetpoint.text;
+  string LOW_SPECIFICATION = txtLowSetpoint.text;
+  string trendMin = txtTrendMin.text;
+  string trendMax = txtTrendMax.text;
+  string department = comboBoxDepartment.selectedText();
+  string subSystem = comboBoxSubSystem.selectedText();
+  string sysId ;
+  string direction = comboBoxDirection.text;
+  string sigma = comboSigma.text;
+  string visibleMax = txtVisibleMax.text;
+  string visibleMin = txtVisibleMin.text;
+  string force_UCL = txtUCL.text;
+  string force_LCL = txtLCL.text;
+  string force_Middle = txtMiddle.text;
+  string warmUp=txtWarmUp.text;
+  string warmDown=txtWarmDown.text;
+
+  if( (dpe == &quot;&quot;) ||
+      (description == &quot;&quot;) ||
+      (HIGH_SPECIFICATION == &quot;&quot;) ||
+      (MIDDLE_SPECIFICATION == &quot;&quot;) ||
+      (LOW_SPECIFICATION == &quot;&quot;) ||
+      (trendMin == &quot;&quot;) ||
+      (force_UCL == &quot;&quot;)  ||
+      (force_LCL == &quot;&quot;)  ||
+      (force_Middle == &quot;&quot;)  ||
+      (trendMax == &quot;&quot;) ||
+      (department == &quot;&quot;) ||
+      (subSystem == &quot;&quot;) ||
+      (sigma == &quot;选择&quot;) ||
+      (visibleMax == &quot;&quot;) ||
+      (visibleMin == &quot;&quot;)  )
+  {
+
+   ChildPanelOnCentralModal(&quot;vision/messages/MessageInfo1.pnl&quot;, &quot;&quot;, makeDynString(&quot;$1:检查数据是否为空\n&quot;+dpe+&quot;\n无法添加!&quot;));
+   return;
+  }
+
+  DebugN(dpe, description, HIGH_SPECIFICATION,MIDDLE_SPECIFICATION,LOW_SPECIFICATION,trendMin, trendMax , department, subSystem);
+
+  // 1. 是否找到 department？
+  for(int i = 1; i &lt;= dynlen(dmJsonBuf); i++)
+  {
+    // 找课别
+    if( dmJsonBuf[i][&quot;text&quot;] == department )
+    {
+
+      sysId = dmJsonBuf[i][&quot;sysId&quot;];
+      if(debugFlag) DebugN(&quot;found DEPARTMENT -- &quot;, department);
+      for(int j = 1; j &lt;= dynlen(dmJsonBuf[i][&quot;nodes&quot;]); j++)
+      {
+        // 找子系统
+        if(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;text&quot;] == subSystem)
+        {
+
+          if(debugFlag) DebugN(&quot;found SYSTEM -- &quot;, subSystem);
+           // 是否存在dpe？
+          for(int k = 1; k &lt;= dynlen( dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;] ); k++)
+          {
+            // 相同dpe
+            if(  dpe == dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;][k][&quot;nodes&quot;][1][&quot;text&quot;])
+
+            {
+              ChildPanelOnCentralModal(&quot;vision/messages/MessageInfo1.pnl&quot;, &quot;&quot;, makeDynString(&quot;$1:存在该测点\n&quot;+dpe+&quot;\n无法添加!&quot;));
+              return  ;
+            }
+
+          }
+
+           // 新dpe
+           string parentId = dmJsonBuf[i][&quot;nodes&quot;][j][&quot;uuid&quot;];
+
+           DebugN(&quot;新增dpe-- &quot;, department,subSystem, dpe,
+                   parentId,
+                  description, HIGH_SPECIFICATION,
+                  MIDDLE_SPECIFICATION,LOW_SPECIFICATION,
+                  trendMin, trendMax ,sysId,
+                  department, subSystem);
+
+
+           string uuid3, uuid4;
+           uuid3 = createUuid();
+           uuid4 = createUuid();
+
+           dyn_mapping m4;
+           dynInsertAt(m4, makeMapping(  &quot;text&quot;, dpe,
+                                   &quot;selectable&quot;, false ,
+                                   &quot;checkable&quot;, true,
+                                   &quot;LOW_SPECIFICATION&quot;, LOW_SPECIFICATION,
+                                   &quot;MIDDLE_SPECIFICATION&quot;, MIDDLE_SPECIFICATION,
+                                   &quot;HIGH_SPECIFICATION&quot;,HIGH_SPECIFICATION,
+                                   &quot;trendMin&quot;, trendMin,
+                                   &quot;trendMax&quot;, trendMax,
+                                   &quot;sysId&quot;, sysId,
+                                   &quot;force_UCL&quot;, force_UCL,
+                                   &quot;force_LCL&quot;, force_LCL,
+                                   &quot;force_Middle&quot;, force_Middle,
+                                   &quot;sigma&quot;, sigma,
+                                   &quot;visibleMax&quot;, visibleMax,
+                                   &quot;visibleMin&quot;, visibleMin,
+                                   &quot;direction&quot;, direction,
+                                   &quot;warmUp&quot;,warmUp,
+                                   &quot;warmDown&quot;,warmDown,
+                                   &quot;uuid&quot;,  uuid4,
+                                   &quot;state&quot;, makeMapping(&quot;disabled&quot;, false )), 1);
+
+           dynInsertAt(dmJsonBuf[i][&quot;nodes&quot;][j][&quot;nodes&quot;], makeMapping(  &quot;text&quot;, description,
+                                           &quot;selectable&quot;, false,
+                                           &quot;checkable&quot;, false,
+                                           &quot;uuid&quot;,  uuid3 ,
+                                           &quot;nodes&quot;, m4 ), 1);
+
+           // 显示在TREE中
+            TREE1.appendItemNC(  parentId ,  uuid3 ,  description );
+            TREE1.appendItemNC(  uuid3 ,  uuid4 , dpe );
+
+            TREE1.setText(uuid4, mColumnNameCN[&quot;规格下限（LSL）&quot;], LOW_SPECIFICATION);
+            TREE1.setText(uuid4, mColumnNameCN[&quot;规格中线&quot;], MIDDLE_SPECIFICATION);
+            TREE1.setText(uuid4, mColumnNameCN[&quot;规格上限（USL）&quot;], HIGH_SPECIFICATION);
+            TREE1.setText(uuid4, mColumnNameCN[&quot;剔除下限&quot;], trendMin);
+            TREE1.setText(uuid4, mColumnNameCN[&quot;剔除上限&quot;], trendMax );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;系统号&quot;], sysId );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;方向&quot;], direction );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;sigma&quot;], sigma );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;视界上限&quot;], visibleMax );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;视界下限&quot;], visibleMin );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;管制上限&quot;], force_UCL );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;视界中线&quot;], force_Middle );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;管制下限&quot;], force_LCL );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;Warm上限&quot;], warmUp );
+            TREE1.setText(uuid4, mColumnNameCN[&quot;Warm下限&quot;], warmDown );
+            TREE1.setForeColor(uuid3, 0, &quot;green&quot;);
+            TREE1.setForeColor(uuid4, 0, &quot;green&quot;);
+
+            newAddedId4 = uuid4;
+            newAddedId3 = uuid3;
+
+
+            btSave.enabled = true;
+            ChildPanelOnCentralModal(&quot;vision/messages/MessageInfo1.pnl&quot;, &quot;&quot;, makeDynString(&quot;$1:添加OK\n&quot;+dpe+&quot;\n请保存!&quot;));
+
+
+
+
+
+
+           //;
+
+
+       }
+
+      }
+
+
+
+    }
+
+
+  }
+
+
+}
+
+
+// 读取JSON格式的数据文件
+// zhigang-li@siemens.com
+dyn_mapping SPC_GetJsonData()
+{
+  string path = getPath(DATA_REL_PATH) + &quot;Reportv2/config/menuJsonSPC.txt&quot;;
+
+  string str;
+
+  fileToString( path, str);
+
+  dyn_mapping dm = jsonDecode(str);
+
+  return dm;
+
+}
+
+
+
+
+
+
+// 初始化TREE控件
+// zhigang-li@siemens.com
+SPC_UpdateTree()
+{
+
+
+
+  dyn_mapping m1, m2, m3, m4;
+  string parentId;
+  string uuid;
+
+  dyn_mapping m1 = dmJsonBuf ;
+
+  for(int i = 1; i &lt;= dynlen(m1); i++)
+  {
+    // 1. 课别
+    string parentId1 = &quot;&quot;;
+    string uuid1 = m1[i][&quot;uuid&quot;];
+    string text1 = m1[i][&quot;text&quot;];
+    m2 = m1[i][&quot;nodes&quot;];
+
+    TREE1.appendItemNC(  parentId1 ,  uuid1 ,  text1 );
+
+          // 2. 子系统
+          for(int j = 1; j &lt;= dynlen(m2); j++)
+          {
+            string parentId2 = uuid1 ;
+            string uuid2 = m2[j][&quot;uuid&quot;];
+            string text2 = m2[j][&quot;text&quot;];
+            m3 = m2[j][&quot;nodes&quot;];
+
+            TREE1.appendItemNC(  parentId2 ,  uuid2 ,  text2 );
+
+                 // 3. 侦测点
+                for(int k = 1; k &lt;= dynlen(m3); k++)
+                {
+                  string parentId3 = uuid2 ;
+                  string uuid3 = m3[k][&quot;uuid&quot;];
+                  string text3 = m3[k][&quot;text&quot;];
+                  m4 = m3[k][&quot;nodes&quot;];
+
+                  TREE1.appendItemNC(  parentId3 ,  uuid3 ,  text3 );
+
+                        // 4. DPE
+                    for(int l = 1; l &lt;= dynlen(m4); l++)
+                    {
+                      string parentId4 = uuid3 ;
+                      string uuid4 = m4[l][&quot;uuid&quot;];
+                      string text4 = m4[l][&quot;text&quot;];
+
+                      TREE1.appendItemNC(  parentId4 ,  uuid4 ,  text4 );
+
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;规格下限（LSL）&quot;], m4[l][&quot;LOW_SPECIFICATION&quot;]);
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;规格中线&quot;], m4[l][&quot;MIDDLE_SPECIFICATION&quot;]);
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;规格上限（USL）&quot;], m4[l][&quot;HIGH_SPECIFICATION&quot;]);
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;剔除下限&quot;], m4[l][&quot;trendMin&quot;]);
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;剔除上限&quot;], m4[l][&quot;trendMax&quot;]);
+                      TREE1.setText(uuid4, mColumnNameCN[&quot;系统号&quot;], m4[l][&quot;sysId&quot;]);
+                      if(mappingHasKey(m4[l], &quot;direction&quot; ) )
+                      {
+
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;方向&quot;], m4[l][&quot;direction&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;方向&quot;], &quot;双边&quot; );
+                      }
+
+                      if(mappingHasKey(m4[l], &quot;sigma&quot; ) )
+                      {
+
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;sigma&quot;], m4[l][&quot;sigma&quot;] );
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;sigma&quot;], &quot;3σ&quot; );
+                      }
+
+
+                      if(mappingHasKey(m4[l], &quot;visibleMax&quot; ) )
+                      {
+
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;视界上限&quot;], m4[l][&quot;visibleMax&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;视界上限&quot;], (float)m4[l][&quot;trendMax&quot;]+1 );
+                      }
+
+
+                      if(mappingHasKey(m4[l], &quot;visibleMin&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;视界下限&quot;], m4[l][&quot;visibleMin&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;视界下限&quot;], (float)m4[l][&quot;trendMin&quot;]-1 );
+                      }
+
+
+                      if(mappingHasKey(m4[l], &quot;force_UCL&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制上限&quot;], m4[l][&quot;force_UCL&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制上限&quot;],  0 );
+                      }
+
+                      if(mappingHasKey(m4[l], &quot;force_LCL&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制下限&quot;], m4[l][&quot;force_LCL&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制下限&quot;],  0 );
+                      }
+
+
+                      if(mappingHasKey(m4[l], &quot;force_Middle&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制中线&quot;], m4[l][&quot;force_Middle&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;管制中线&quot;],  0 );
+                      }
+
+                      if(mappingHasKey(m4[l], &quot;warmUp&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;Warm上限&quot;], m4[l][&quot;warmUp&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;Warm上限&quot;],  0 );
+                      }
+
+                      if(mappingHasKey(m4[l], &quot;warmDown&quot; ) )
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;Warm下限&quot;], m4[l][&quot;warmDown&quot;]);
+                      }
+                      else
+                      {
+                        TREE1.setText(uuid4, mColumnNameCN[&quot;Warm下限&quot;],  0 );
+                      }
+                    }
+
+                }
+          }
+
+  }
+
+
+
+
+}
+
+
+
+// 初始化TREE控件
+// zhigang-li@siemens.com
+SPC_InitTree()
+{
+
+  this.addColumn(&quot;选择&quot;);
+  this.addColumn(&quot;规格下限（LSL）&quot;);
+  this.addColumn(&quot;规格中线&quot;);
+  this.addColumn(&quot;规格上限（USL）&quot;);
+  this.addColumn(&quot;剔除下限&quot;);
+  this.addColumn(&quot;剔除上限&quot;);
+  this.addColumn(&quot;系统号&quot;);
+  this.addColumn(&quot;方向&quot;);
+  this.addColumn(&quot;sigma&quot;);
+  this.addColumn(&quot;视界上限&quot;);
+  this.addColumn(&quot;视界下限&quot;);
+  this.addColumn(&quot;管制上限(UCL)&quot;);
+  this.addColumn(&quot;管制中线&quot;);
+  this.addColumn(&quot;管制下限(LCL)&quot;);
+  this.addColumn(&quot;Warm上限&quot;);
+  this.addColumn(&quot;Warm下限&quot;);
+
+
+
+}
+
+
+]]></script>
+  <script name="Initialize" isEscaped="1"><![CDATA[main()
+{
+
+  mColumnNameCN[&quot;规格下限（LSL）&quot;] = 1;
+  mColumnNameCN[&quot;规格中线&quot;] = 2;
+  mColumnNameCN[&quot;规格上限（USL）&quot;] = 3;
+  mColumnNameCN[&quot;剔除下限&quot;] = 4;
+  mColumnNameCN[&quot;剔除上限&quot;] = 5;
+  mColumnNameCN[&quot;系统号&quot;] = 6;
+  mColumnNameCN[&quot;方向&quot;] = 7;
+  mColumnNameCN[&quot;sigma&quot;] =8;
+  mColumnNameCN[&quot;视界上限&quot;] =9;
+  mColumnNameCN[&quot;视界下限&quot;] =10;
+
+  mColumnNameCN[&quot;管制上限&quot;] =11;
+
+  mColumnNameCN[&quot;管制中线&quot;] =12;
+
+  mColumnNameCN[&quot;管制下限&quot;] =13;
+  mColumnNameCN[&quot;Warm上限&quot;] =14;
+  mColumnNameCN[&quot;Warm下限&quot;] =15;
+  dmJsonBuf = SPC_GetJsonData();
+
+
+}
+]]></script>
+ </events>
+ <shapes>
+  <shape Name="cmd_dpSel" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">4</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">510 900.613425925911</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">37</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+     <prop name="de_AT.utf8"></prop>
+     <prop name="ru_RU.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignCenter</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Arial,-1,13,5,40,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Arial,-1,13,5,40,0,0,0,0,0</prop>
+     <prop name="de_AT.utf8">Arial,-1,13,5,40,0,0,0,0,0</prop>
+     <prop name="ru_RU.utf8">Arial,-1,13,5,40,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">424.719981015662 518.1944444444455</prop>
+    <prop name="Size">33 26</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">dpeMon_tree.gif</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main()
+{
+  int        i,overflow,iError=0,dpPerm;
+  bool       ex=false;
+  string     dpe;
+  dyn_string filter,dps,allDps=makeDynString();
+
+
+
+  dpSelector(dpe,false,&quot;ALL_SYSTEM_NAME_SYS&quot;,true);
+
+  dpe = dpSubStr(dpe,DPSUB_DP_EL);
+
+  if ( strrtrim(strltrim(dpe))==&quot;&quot; )
+    return;
+
+  txtDPE.text = dpe;
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="txtDPE" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">5</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">120.0654761904762 522.8420138889114</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">0</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">120 520</prop>
+    <prop name="Size">300 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+   <events>
+    <script name="TextChanged" isEscaped="1"><![CDATA[main(string newText)
+{
+  string dpe = newText ;
+
+  if(dpExists(dpe))
+  {
+
+
+    txtUNIT.text = dpGetUnit(dpe);
+
+
+  }
+
+
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="FRAME1" shapeType="FRAME" layerId="0">
+   <properties>
+    <prop name="serialId">6</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">35 488</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">{0,0,0}</prop>
+    <prop name="TabOrder">5</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Geometry">1.139896373056995 0 0 1.051587301587301 -9.896373056994813 -33.17460317460303</prop>
+    <prop name="BorderStyle">3D</prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">Frame Title</prop>
+     <prop name="zh_CN.utf8">SPC点位管理</prop>
+    </prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">35 488</prop>
+    <prop name="Size">966 253</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT1" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">8</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">112 538</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">7</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">112 538</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">选择DPE：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight|AlignBottom]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtDesc" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">13</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">120 550</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">1</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">120 552</prop>
+    <prop name="Size">300 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="txtUNIT" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">14</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">120 580</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_3DFace</prop>
+    <prop name="TabOrder">2</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">120 585</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT2" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">16</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">112 570.6988932291653</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">15</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">112 570.6988932291653</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">侦测点名称：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight|AlignBottom]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT3" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">17</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">112 605.1822916666445</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">16</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">112 605.1822916666445</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">物理单位：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight|AlignBottom]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT4" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">18</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">112 635.5589192708236</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">17</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">112 635.5589192708236</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">管制方向：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight|AlignBottom]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT5" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">19</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">112 668.2578124999889</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">18</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">112 668.2578124999889</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">连续：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight|AlignBottom]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtAlertTimes" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">20</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">120 666</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_3DFace</prop>
+    <prop name="TabOrder">12</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">120 649</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+   <events>
+    <script name="Initialize" isEscaped="1"><![CDATA[main()
+{
+  this.text = 10;
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT6" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">21</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">292.9863200762151 652.6627604166721</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">20</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">292.9863200762151 652.6627604166721</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">次超限列入品质异常报警</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="comboBoxDirection" shapeType="COMBO_BOX" layerId="0">
+   <properties>
+    <prop name="serialId">22</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">132 628</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">4</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">120 615</prop>
+    <prop name="Size">100 28</prop>
+    <prop name="Listitems">
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">双边</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">单边向下</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">单边向上</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+    </prop>
+    <prop name="Editable">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT7" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">23</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">527 523</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">22</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">527 523</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">归属课别：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="comboBoxDepartment" shapeType="COMBO_BOX" layerId="0">
+   <properties>
+    <prop name="serialId">24</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">536 521</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">13</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">536 518</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="Listitems"/>
+    <prop name="Editable">True</prop>
+   </properties>
+   <events>
+    <script name="Changed" isEscaped="1"><![CDATA[main()
+{
+
+
+  comboBoxSubSystem.deleteAllItems();
+
+
+  dyn_mapping dm = SPC_GetJsonData();
+
+  for(int i = 1; i &lt;= dynlen(dm); i++)
+  {
+    string department =  dm[i][&quot;text&quot;];
+    if(department ==  comboBoxDepartment.selectedText )
+    {
+      for(int j = 1; j &lt;= dynlen( dm[i][&quot;nodes&quot;] ); j++)
+      {
+            comboBoxSubSystem.appendItem(  dm[i][&quot;nodes&quot;][j][&quot;text&quot;] );
+      }
+
+    }
+
+  }
+}]]></script>
+    <script name="Initialize" isEscaped="1"><![CDATA[main()
+{
+  //
+
+  dmJsonBuf = SPC_GetJsonData();
+
+  for(int i = 1; i &lt;= dynlen(dmJsonBuf); i++)
+  {
+    this.appendItem(dmJsonBuf[i][&quot;text&quot;]);
+  }
+
+}
+
+]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT8" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">25</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">760 518</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">24</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">760 518</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">剔除上限：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtTrendMax" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">26</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">769 530.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">21</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">769 513.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT9" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">27</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">760 550.4182291666644</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">26</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">760 550.4182291666644</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">剔除下限：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtTrendMin" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">28</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">769 567.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">23</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">769 547.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT10" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">29</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">760 582.8364583333289</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">28</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">760 582.8364583333289</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">规格上限(USL)：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtHighSetpoint" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">30</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">769.0108604571367 601.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">25</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">769 580.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT11" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">31</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">760 615.2546874999933</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">30</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">760 615.2546874999933</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">规格中线：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtMiddleSetpoint" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">32</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">769.0108604571367 638.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">27</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">769 613.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT12" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">33</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">760 647.6729166666578</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">32</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">760 647.6729166666578</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">规格下限(LSL)：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtLowSetpoint" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">34</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">769.016290685705 676.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">33</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">769 646.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT14" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">37</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1190 10</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">36</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1190 10</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">SPC 点位管理（v1.0）</prop>
+     <prop name="zh_CN.utf8">SPC 点位管理（v1.1）</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="TREE1" shapeType="TREE" layerId="0">
+   <properties>
+    <prop name="serialId">39</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">30 42</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">39</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,16,5,50,0,0,0,0,0,Regular</prop>
+    </prop>
+    <prop name="Location">30 42</prop>
+    <prop name="Size">1101 424</prop>
+    <extended>
+     <prop type="BOOL" name="headerHidden">False</prop>
+     <prop type="INT" name="lineWidth">2</prop>
+     <prop type="BOOL" name="autoCheckParent">True</prop>
+     <script name="clicked" isEscaped="1"><![CDATA[clicked(string id, int column)
+{
+
+    txtLowSetpoint.text = &quot;&quot;;
+    txtMiddleSetpoint.text = &quot;&quot;;
+    txtHighSetpoint.text = &quot;&quot;;
+    txtTrendMin.text = &quot;&quot;;
+    txtTrendMax.text = &quot;&quot;;
+    txtSysId.text = &quot;&quot;;
+    txtDPE.text = &quot;&quot;;
+    txtDesc.text = &quot;&quot;;
+    comboBoxDepartment.text = &quot;&quot;;
+    comboBoxDirection.text = &quot;&quot;;
+    comboBoxSubSystem.text = &quot;&quot;;
+    comboSigma.text = &quot;&quot;;
+    msg.text = &quot;&quot;;
+    txtVisibleMax.text = &quot;&quot;;
+    txtVisibleMin.text = &quot;&quot;;
+    txtUCL.text = &quot;&quot;;
+    txtLCL.text = &quot;&quot;;
+    txtMiddle.text = &quot;&quot;;
+    txtWarmUp.text=&quot;&quot;;
+    txtWarmDown.text=&quot;&quot;;
+
+    txtLowSetpoint.enabled = false;
+    txtMiddleSetpoint.enabled = false;
+    txtHighSetpoint.enabled = false;
+    txtTrendMin.enabled = false;
+    txtTrendMax.enabled = false;
+    txtSysId.enabled = false;
+    txtDPE.enabled = false;
+    txtDesc.enabled = false;
+    comboBoxDepartment.enabled = false;
+    comboBoxDirection.enabled = false;
+    comboBoxSubSystem.enabled = false;
+    comboSigma.enabled = false;
+    txtVisibleMax.enabled = false;
+    txtVisibleMin.enabled = false;
+    txtUCL.enabled = false;
+    txtLCL.enabled = false;
+    txtMiddle.enabled = false;
+    msg.text = &quot;&quot;;
+    txtWarmDown.enabled=false;
+    txtWarmUp.enabled=false;
+
+    string sysId = TREE1.getText(id, 6);
+    if(sysId == &quot;&quot;)
+    {
+      return;
+    }
+
+    string selected = TREE1.getText(id,0);
+    if(!dpExists(  selected))
+    {
+      if(strlen(selected)&gt;5)
+      {
+
+         msg.text = selected + &quot;不存在!&quot;;
+      }
+      return;
+    }
+
+    txtDPE.text = selected;
+    string descriptionId = TREE1.parent(id);
+    string subSystemId = TREE1.parent(descriptionId);
+    string departmentId = TREE1.parent(subSystemId);
+    string subSystem = TREE1.getText(subSystemId,0);
+    string department = TREE1.getText(departmentId,0);
+
+    string LOW_SPECIFICATION = TREE1.getText(id,1);
+    string MIDDLE_SPECIFICATION = TREE1.getText(id, 2);
+    string HIGH_SPECIFICATION = TREE1.getText(id, 3);
+    string trendMin = TREE1.getText(id, 4);
+    string trendMax = TREE1.getText(id, 5);
+    string sysId = TREE1.getText(id, 6);
+    string direction = TREE1.getText(id, 7);
+    string sigma = TREE1.getText(id, 8);
+    string visibleMax = TREE1.getText(id, 9);
+    string visibleMin = TREE1.getText(id, 10);
+    string sUCL = TREE1.getText(id, 11);
+    string sLCL= TREE1.getText(id, 12);
+    string sMiddle = TREE1.getText(id, 13);
+    string warmUp=TREE1.getText(id,14);
+    string warmDown=TREE1.getText(id,15);
+    string sDescription = TREE1.getText(descriptionId, 0);
+
+
+
+    txtLowSetpoint.enabled = true;
+    txtMiddleSetpoint.enabled = true;
+    txtHighSetpoint.enabled = true;
+    txtTrendMin.enabled = true;
+    txtTrendMax.enabled = true;
+    txtSysId.enabled = true;
+    txtDPE.enabled = true;
+    txtDesc.enabled = true;
+    comboBoxDepartment.enabled = true;
+    comboBoxDirection.enabled = true;
+    comboBoxSubSystem.enabled = true;
+    comboSigma.enabled = true;
+    txtVisibleMax.enabled = true;
+    txtVisibleMin.enabled = true;
+    txtUCL.enabled = true;
+    txtLCL.enabled = true;
+    txtMiddle.enabled = true;
+    txtWarmDown.enabled = true;
+    txtWarmUp.enabled = true;
+
+
+    txtDesc.text = sDescription;
+    txtLowSetpoint.text = LOW_SPECIFICATION;
+    txtMiddleSetpoint.text = MIDDLE_SPECIFICATION;
+    txtHighSetpoint.text = HIGH_SPECIFICATION;
+    txtTrendMin.text = trendMin;
+    txtTrendMax.text = trendMax;
+    txtSysId.text = sysId;
+    comboBoxDirection.text = direction;
+
+    comboBoxDepartment.text = (department);
+    comboBoxSubSystem.text = (subSystem);
+    comboSigma.text =  sigma;
+    txtVisibleMax.text = visibleMax;
+    txtVisibleMin.text = visibleMin;
+
+    txtUCL.text = sUCL;
+    txtLCL.text = sLCL;
+    txtMiddle.text = sMiddle;
+    txtWarmUp.text=warmUp;
+    txtWarmDown.text=warmDown;
+
+    if(direction == &quot;&quot;)
+    {
+      direction = &quot;双边&quot;;
+    }
+
+
+}
+]]></script>
+    </extended>
+   </properties>
+   <events>
+    <script name="Initialize" isEscaped="1"><![CDATA[// 说明：dmJsonBuf是本地panel的buffer
+
+main()
+{
+
+
+  SPC_InitTree();
+  SPC_UpdateTree();
+
+  // DebugN(dmJsonBuf);
+
+   TREE1.expandAll();
+}
+
+
+
+
+]]></script>
+   </events>
+  </shape>
+  <shape Name="btAddNew" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">40</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">828 706</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">40</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">828 701</prop>
+    <prop name="Size">44 32</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">SVN_Icons/svn_add.png</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main()
+{
+  SPC_AddNewDpe();
+}
+
+]]></script>
+   </events>
+  </shape>
+  <shape Name="btExpandAll" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">41</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1150 50</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">41</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1150 42</prop>
+    <prop name="Size">101 31</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">PUSH_BUTTON2</prop>
+     <prop name="zh_CN.utf8">全部展开</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+
+  TREE1.expandAll();
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="btExpandDp" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">42</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1150 80</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">50</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1150 72</prop>
+    <prop name="Size">101 31</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">PUSH_BUTTON2</prop>
+     <prop name="zh_CN.utf8">展开到侦测点位</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+  TREE1.expandToDepth(1);
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT15" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">50</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">527 555</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">49</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">527 555</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">归属系统：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="comboBoxSubSystem" shapeType="COMBO_BOX" layerId="0">
+   <properties>
+    <prop name="serialId">51</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">536.5 553</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">19</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">536.5 550</prop>
+    <prop name="Size">99 24</prop>
+    <prop name="Listitems"/>
+    <prop name="Editable">True</prop>
+   </properties>
+  </shape>
+  <shape Name="btRefresh" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">52</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1210 150</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">51</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1210 142</prop>
+    <prop name="Size">44 32</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">wf/reload.png</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+  TREE1.clear();
+
+  dmJsonBuf = SPC_GetJsonData();
+  SPC_UpdateTree();
+  TREE1.expandAll();
+
+
+  comboBoxDepartment.deleteAllItems();
+  for(int i = 1; i &lt;= dynlen(dmJsonBuf); i++)
+  {
+    comboBoxDepartment.appendItem(dmJsonBuf[i][&quot;text&quot;]);
+  }
+
+
+
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="btSave" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">53</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1210 194</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">52</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1210 186</prop>
+    <prop name="Size">44 32</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">save_32.bmp</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+
+  // 读取文件。
+  string pathJson = getPath(DATA_REL_PATH) + &quot;ReportV2/config/menuJsonSPC.txt&quot;;
+
+  file f =   fopen(pathJson, &quot;w+&quot;);
+
+  fputs( jsonEncode( dmJsonBuf ,false),f );
+
+  fflush(f);
+  fclose(f);
+
+  this.enabled = false;
+
+  TREE1.setForeColor(newAddedId3, 0, &quot;black&quot;);
+  TREE1.setForeColor(newAddedId4, 0, &quot;black&quot;);
+
+}
+]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT16" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">55</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1180 150</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">54</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1180 150</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">重新加载</prop>
+     <prop name="zh_CN.utf8">重新加载</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT17" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">56</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1184 196</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">55</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1184 196</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">重新加载</prop>
+     <prop name="zh_CN.utf8">永久修改</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="btSavePreview" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">57</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">718 708.7727272727273</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">56</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">718 701</prop>
+    <prop name="Size">44 32</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">save_32.bmp</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+  SPC_ModifyDpe();
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT18" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">58</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">692 708.7727272727273</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">57</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">692 708.7727272727273</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">重新加载</prop>
+     <prop name="zh_CN.utf8">临时存储</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="btRemove" shapeType="PUSH_BUTTON" layerId="0">
+   <properties>
+    <prop name="serialId">59</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">606 708.7727272727273</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_ButtonText</prop>
+    <prop name="BackColor">_Button</prop>
+    <prop name="TabOrder">58</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">606 701</prop>
+    <prop name="Size">44 32</prop>
+    <prop name="BorderStyle">Styled</prop>
+    <prop name="Image" SharedPixmap="1">
+     <prop name="BackgroundPixmap">delete_24.png</prop>
+    </prop>
+   </properties>
+   <events>
+    <script name="Clicked" isEscaped="1"><![CDATA[main(mapping event)
+{
+  SPC_DeleteDpe();
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT19" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">60</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">580 708.7727272727273</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">59</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">580 708.7727272727273</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">重新加载</prop>
+     <prop name="zh_CN.utf8">删除点位</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT20" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">61</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">802 708.7727272727273</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">60</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">802 708.7727272727273</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">重新加载</prop>
+     <prop name="zh_CN.utf8">增加点位</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignHCenter]</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT21" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">63</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">527 593</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">False</prop>
+    <prop name="ForeColor">_Transparent</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">61</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">527 593</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">FMCS System ID：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtSysId" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">68</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">536 584</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">False</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_3DFace</prop>
+    <prop name="TabOrder">66</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">536 589</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="msg" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">71</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">120 495</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">red</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">68</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinBevel,CapProjecting,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">120 495</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Noto Sans,-1,16,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Noto Sans,-1,16,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">msg</prop>
+     <prop name="zh_CN.utf8">msg</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+   </properties>
+   <events>
+    <script name="Initialize" isEscaped="1"><![CDATA[main()
+{
+  this.text = &quot;&quot;;
+}]]></script>
+   </events>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT22" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">73</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">526.75 638</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">69</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">526.75 638</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">样本标准差：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="comboSigma" shapeType="COMBO_BOX" layerId="0">
+   <properties>
+    <prop name="serialId">74</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">536.25 636</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">70</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">536.25 633</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="Listitems">
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">选择</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">3σ</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">6σ</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+     <prop name="Item">
+      <prop name="Text">
+       <prop name="en_US.utf8">???</prop>
+       <prop name="zh_CN.utf8">12σ</prop>
+      </prop>
+      <prop name="Select">False</prop>
+     </prop>
+    </prop>
+    <prop name="Editable">True</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT23" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">76</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 516</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">71</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 516</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">视界上限：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtVisibleMax" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">77</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 528.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">72</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 511.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT24" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">78</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 552.7546874999933</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">73</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 552.7546874999933</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">视界下限：</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtVisibleMin" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">79</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 565.2453125000067</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">74</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 548.2453125000067</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT27" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">85</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 617.6226562500033</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">79</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 617.6226562500033</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">管制中线:</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtMiddle" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">86</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 630.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">80</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 613.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT28" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">87</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 650.5</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">81</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 650.5</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">管制下限(LCL):</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtLCL" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">88</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 663.3679687500099</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">82</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 646.3679687500099</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT29" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">89</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 584.6226562500033</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">83</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 584.6226562500033</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">管制上限(UCL):</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtUCL" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">90</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 597.4906250000133</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">84</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 580.4906250000133</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT30" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">92</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 690.5</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">85</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 690.5</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">Warming上限:</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtWarmUp" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">93</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 703.3679687500099</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">86</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 686.3679687500099</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+  <shape Name="PRIMITIVE_TEXT31" shapeType="PRIMITIVE_TEXT" layerId="0">
+   <properties>
+    <prop name="serialId">94</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1010 713.3160156249951</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">87</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="DashBackColor">_Transparent</prop>
+    <prop name="AntiAliased">False</prop>
+    <prop name="LineType">[solid,oneColor,JoinRound,CapRound,1]</prop>
+    <prop name="BorderZoomable">False</prop>
+    <prop name="FillType">[outline]</prop>
+    <prop name="Location">1010 713.3160156249951</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Text">
+     <prop name="en_US.utf8">选择DPE</prop>
+     <prop name="zh_CN.utf8">Warming下限:</prop>
+    </prop>
+    <prop name="Distance">2</prop>
+    <prop name="BorderOffset">2</prop>
+    <prop name="Bordered">False</prop>
+    <prop name="Fit">True</prop>
+    <prop name="Transformable">False</prop>
+    <prop name="TextFormat">[0s,,,AlignRight]</prop>
+   </properties>
+  </shape>
+  <shape Name="txtWarmDown" shapeType="TEXT_FIELD" layerId="0">
+   <properties>
+    <prop name="serialId">95</prop>
+    <prop name="Type"></prop>
+    <prop name="RefPoint">1019 726.183984375005</prop>
+    <prop name="Enable">True</prop>
+    <prop name="Visible">True</prop>
+    <prop name="ForeColor">_WindowText</prop>
+    <prop name="BackColor">_Window</prop>
+    <prop name="TabOrder">88</prop>
+    <prop name="ToolTipText">
+     <prop name="en_US.utf8"></prop>
+     <prop name="zh_CN.utf8"></prop>
+    </prop>
+    <prop name="layoutAlignment">AlignNone</prop>
+    <prop name="snapMode">Point</prop>
+    <prop name="Font">
+     <prop name="en_US.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+     <prop name="zh_CN.utf8">Segoe UI,-1,12,5,50,0,0,0,0,0</prop>
+    </prop>
+    <prop name="Location">1019 709.183984375005</prop>
+    <prop name="Size">100 24</prop>
+    <prop name="BorderStyle">Normal</prop>
+    <prop name="Editable">True</prop>
+    <prop name="TextFormat">[0s,,,AlignLeft]</prop>
+    <prop name="ulcClientSideWidget">False</prop>
+   </properties>
+  </shape>
+ </shapes>
+</panel>

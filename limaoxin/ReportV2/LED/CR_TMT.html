@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<meta charset="utf-8"> 
+<link href="/data/ReportV2/js/bootstrap/3.3.4/dist/css/bootstrap.css" rel="stylesheet"> 
+ 
+<head>
+    <meta charset="UTF-8"> 
+    <title>FMCS LED Monitor </title>
+    <style type="text/css">
+html, body {
+    margin: 0;
+    height: 100 % ;
+    background:  # 879BAA;
+}
+  
+.LEDTEXT {
+  padding: 15px;
+  margin-bottom: 20px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  font-size:20px;
+  margin:2px;
+} 
+.LEDTEXT-info {
+  color: #3c763d;
+  background-color: #dff0d8;
+  border-color: #d6e9c6;
+  border-top-color: #c9e2b3;
+} 
+.LEDTEXT-value {
+  color: #31708f;
+  background-color: #d9edf7;
+  border-color: #bce8f1;
+}  
+    </style>
+</head>
+
+
+<script src="/data/ReportV2/js/jquery/3.4.1/jquery.js"></script>  
+<body > 
+
+<div class="container-fluid"   id="dataRow" >  
+	<!--><div class="row" style="margin:10px; ">  
+	
+			<div class="col-md-3" id="DivDpeName"> </div>   
+			<div class="col-md-3" id="DivDpeValue"> </div>   
+			<div class="col-md-3" id="DivDpeDescription" > </div>   
+			<div class="col-md-3" id="DivDpeUnit"> </div>   
+			
+		</div>
+	<!-->
+</div>
+<!--/.container-->  
+
+
+
+</body> 
+ 
+   <script type="text/javascript">  
+   
+
+ $(document).ready(function(){ 
+ 
+    var dpList = [];
+	dpList.push('FAB1_1_2_CR_TMT01.TIT.Respond.FB_Value.VALUE');
+	dpList.push('FAB1_1_2_CR_TMT02.TIT.Respond.FB_Value.VALUE');
+	dpList.push('FAB1_1_2_CR_TMT03.TIT.Respond.FB_Value.VALUE');
+	dpList.push('FAB1_1_2_CR_TMT04.TIT.Respond.FB_Value.VALUE');
+	
+	
+  setInterval(
+	function queryWinCCOA(){  
+
+	$.ajax({
+		url: "/FMCS_LEDJson",	 
+		type: "POST",  
+		data: JSON.stringify(dpList),	 
+		dataType: "JSON",  
+		success: function (data) {	//请求成功 
+			
+			 console.log(data);
+			 $("#dataRow").empty();
+				 
+			 for(var i = 0;i<data.length;i++)
+			 { 
+				 var divRow = "<div class='row  ' >  ";
+				 // var divDpId = "<div class='col-md-1'><div class='LEDTEXT LEDTEXT-info  ' > "+ data[i]['dpId'] +"</div> </div>";
+				 var divDpName = "<div class='col-md-6'><div class='LEDTEXT LEDTEXT-info  ' > "+ data[i]['dpName'] +"</div> </div>";
+				 var divDpDescription = "<div class='col-md-4'><div class='LEDTEXT LEDTEXT-info  ' > "+ data[i]['dpDescription'] +"</div> </div>";
+				 var divDpValue = "<div class='col-md-2'><div class='LEDTEXT LEDTEXT-value  ' > "+ data[i]['dpValue'] + data[i]['dpUnit'] + "</div> </div>"; 
+				 var divEnd = "</div>";
+				 
+				 $("#dataRow").append(divRow ,divDpName,divDpDescription,divDpValue ,divEnd);  
+				 console.log(data[i]);
+			 }
+		},
+		error: function () {
+			console.log("/FMCS_DpGetJson请求出错！");
+		}, 
+	}); 
+	
+	
+				 
+				
+				 
+			},3000); 
+			
+ });
+ 
+	  
+</script> 
+</html>
