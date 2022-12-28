@@ -124,15 +124,15 @@ public class ScheduledStorage {
         }
 
         // 写入生成的文件信息1
-        File file = new File(path + "\\ReportV2\\storage\\storage.json");
-        FileWriter fooWriter = null;
-        try {
-            fooWriter = new FileWriter(file, false);
-            fooWriter.write(stotage1.toJSONString());
-            fooWriter.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+//        File file = new File(path + "\\ReportV2\\storage\\storage.json");
+//        FileWriter fooWriter = null;
+//        try {
+//            fooWriter = new FileWriter(file, false);
+//            fooWriter.write(stotage1.toJSONString());
+//            fooWriter.close();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
 
         // 报警生成页面
         for (String s:alarList.keySet()){
@@ -153,10 +153,9 @@ public class ScheduledStorage {
                     String object = request(urlAlar + params ,new HashMap<>(),"get");
                     // 生成的文件信息
                     String fileName = s + "-" + m + "-" + d + ".html";
-                    File file2 = new File(path + "\\alarmreport\\storage\\" + fileName);
-                    FileWriter fooW = null;
+                    BufferedWriter fooW = null;
                     try {
-                        fooW = new FileWriter(file2, false);
+                        fooW = new BufferedWriter (new OutputStreamWriter (new FileOutputStream (path + "\\alarmreport\\storage\\" + fileName,true),"UTF-8"));
                         fooW.write(object);
                         fooW.close();
                     } catch (IOException e) {
