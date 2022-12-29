@@ -19,10 +19,6 @@ public class ScheduledStorage {
     
     private static Map<String,Map<String,List<String>>> eportList = new LinkedHashMap<>();
 
-    private static String[] system = new String[]{"ReportV2","alarmreport"};
-
-    private static Map<String,List<String>> alarList = new LinkedHashMap<>();
-
     private static final String[] types = new String[]{"MinuteReport","HourReport"};
 
     private static final String[] distance = new String[]{"oneweek","onemonth"};
@@ -33,9 +29,6 @@ public class ScheduledStorage {
 //    private static final String urlReport = "http://localhost:9098/test";
     private static final String urlReport = "http://10.249.81.24/FMCS_SPC";
 
-    private final static String urlAlar = "http://10.249.81.24/FMCSAlertQuery";
-//    private final static String urlAlar = "http://localhost:9098/test/html";
-
     private static JSONArray stotage1 = new JSONArray();
 
     /**
@@ -43,24 +36,18 @@ public class ScheduledStorage {
      */
     public static void init() {
         try {
-            for (String s:system){
-                File jsonFile = new File(path + "\\" + s + "\\storage\\deptlist.json");
-                FileReader fileReader = new FileReader(jsonFile);
-                Reader reader = new InputStreamReader(new FileInputStream(jsonFile),"utf-8");
-                int ch = 0;
-                StringBuffer sb = new StringBuffer();
-                while ((ch = reader.read()) != -1) {
-                    sb.append((char) ch);
-                }
-                fileReader.close();
-                reader.close();
-                if (s.equals("ReportV2")){
-                    eportList = (Map<String, Map<String, List<String>>>) JSONObject.parse(sb.toString());
-                }else {
-                    alarList = (Map<String, List<String>>) JSONObject.parse(sb.toString());
-                }
-                deleteFiles("\\" + s + "\\storage");
+            File jsonFile = new File(path + "\\ReportV2\\storage\\deptlist.json");
+            FileReader fileReader = new FileReader(jsonFile);
+            Reader reader = new InputStreamReader(new FileInputStream(jsonFile),"utf-8");
+            int ch = 0;
+            StringBuffer sb = new StringBuffer();
+            while ((ch = reader.read()) != -1) {
+                sb.append((char) ch);
             }
+            fileReader.close();
+            reader.close();
+            eportList = (Map<String, Map<String, List<String>>>) JSONObject.parse(sb.toString());
+            deleteFiles("\\ReportV2\\storage");
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -99,7 +86,7 @@ public class ScheduledStorage {
                         map.put("type",types[1]);
                     } else {
                         // 获取前七天数据
-                        map = getTImeRange(Calendar.DATE, -7);
+                        map = getTImeRange(Calendar.DATE, -6);
                         second.put("text","一周趋势图");
                         map.put("type",types[0]);
                     }
@@ -123,7 +110,7 @@ public class ScheduledStorage {
             stotage1.add(system);
         }
 
-        // 写入生成的文件信息1
+//        // 写入生成的文件信息1
 //        File file = new File(path + "\\ReportV2\\storage\\storage.json");
 //        FileWriter fooWriter = null;
 //        try {
@@ -134,37 +121,6 @@ public class ScheduledStorage {
 //            e.printStackTrace();
 //        }
 
-        // 报警生成页面
-        for (String s:alarList.keySet()){
-            List<String> system = alarList.get(s);
-            for (String d:distance) {
-                Map<String, Object> map;
-                if ("onemonth".equals(d)) {
-                    map = getTImeRange(Calendar.MONTH, -30);
-                } else {
-                    map = getTImeRange(Calendar.DATE, -7);
-                }
-                for (String m : system) {
-                    String params = "?subsystem=" + m + "&t2Year=" + map.get("t2Year") + "&t2Month=" + map.get("t2Month") +
-                            "&t2Day=" + map.get("t2Day") + "&t2Hour=" + map.get("t2Hour") + "&t2Minute=" + map.get("t2Minute") +
-                            "&t2Second" + map.get("t2Second") + "&t1Year=" + map.get("t1Year") + "&t1Month=" + map.get("t1Month") +
-                            "&t1Day=" + map.get("t1Day") + "&t1Hour=" + map.get("t1Hour") + "&t1Minute=" + map.get("t1Minute") +
-                            "&t1Second" + map.get("t1Second") + "&alertState=0&filter=*&get=查询报警&timeRange=2";
-                    String object = request(urlAlar + params ,new HashMap<>(),"get");
-                    // 生成的文件信息
-                    String fileName = s + "-" + m + "-" + d + ".html";
-                    BufferedWriter fooW = null;
-                    try {
-                        fooW = new BufferedWriter (new OutputStreamWriter (new FileOutputStream (path + "\\alarmreport\\storage\\" + fileName,true),"UTF-8"));
-                        fooW.write(object);
-                        fooW.close();
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                    System.out.println(fileName + "生成成功！");
-                }
-            }
-        }
 
 
     }
@@ -239,16 +195,6 @@ public class ScheduledStorage {
     }
 
     /**
-     * 生成html文件
-     *
-     * @param jsonObject
-     * @param map
-     */
-    public static void saveExcel(JSONObject jsonObject, Map<String, Object> map) {
-
-    }
-
-    /**
      * 删除指定文件夹内的html文件
      *
      * @param e
@@ -273,11 +219,12 @@ public class ScheduledStorage {
      */
     public static Map<String,Object> getTImeRange(Integer type , Integer day){
         Map<String,Object> map = new HashMap<String,Object>();
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
         Calendar c = Calendar.getInstance();
-        map.put("endTime",format.format(c.getTime()));
+        c.add(Calendar.DATE,-1);
+        map.put("endTime",format.format(c.getTime()) + " 23:59:59");
         c.add(type,day);
-        map.put("startTime",format.format(c.getTime()));
+        map.put("startTime",format.format(c.getTime()) + " 00:00:00");
         return map;
     }
 
