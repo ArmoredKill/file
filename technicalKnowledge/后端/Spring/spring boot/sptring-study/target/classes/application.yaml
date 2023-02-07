@@ -1,0 +1,19 @@
+server:
+  port: 9000
+  shutdown: "graceful"
+
+spring:
+  webflux:
+    resources:
+      chain:
+        strategy:
+          content:
+            enabled: true
+            paths: /**
+          fixed:
+            enabled: true
+            paths: /static/js/
+            version: v12
+      static-locations: classpath:/page/,classpath:/static/js/,classpath:/static/
+  lifecycle:
+    timeout-per-shutdown-phase: "20s"

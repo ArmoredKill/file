@@ -1,1 +1,0 @@
-http://10.249.81.24/FMCSAlertQuery?subsystem=CR&timeRange=1&t1Day=10&t1Month=11&t1Year=2022&t1Hour=00&t1Minute=00&t1Second=00&t2Day=17&t2Month=11&t2Year=2022&t2Hour=23&t2Minute=59&t2Second=59&alertState=0&filter=*&get=查询报警
