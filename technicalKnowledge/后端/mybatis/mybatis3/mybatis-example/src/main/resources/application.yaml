@@ -1,0 +1,26 @@
+server:
+  port: 9898
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/master?useSSL=false&characterEncoding=utf8
+    username: root
+    password: Bin1996+01
+
+# MyBatis
+mybatis:
+  # 搜索指定包别名
+  typeAliasesPackage: org.example.domain
+  # 配置mapper的扫描，找到所有的mapper.xml映射文件
+  mapperLocations: classpath*:mapper/*Mapper.xml
+#  # 加载全局的配置文件
+  configLocation: classpath:mapper/mybatis-config.xml
+#  configuration:
+#    auto-mapping-behavior: full
+
+# 日志配置
+logging:
+  level:
+    org.example: debug
+    org.springframework: WARN
+    org.spring.springboot.dao: debug

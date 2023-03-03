@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "https://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="org.example.mapper.TestMapper">
+
+    <resultMap id="TestResultMap" type="org.example.domain.Test">
+        <result property="id" column="id" />
+        <result property="type" column="type" />
+        <result property="other" column="other" />
+        <result property="anOther" column="an_other" />
+        <result property="date" column="date" />
+    </resultMap>
+
+    <select id="selectList" resultMap="TestResultMap" parameterType="Test">
+        select id, type, an_other ,other, date from test
+        <where>
+            <if test="id != null">
+                and id = #{id}
+            </if>
+            <if test="other != null">
+                and other = #{other}
+            </if>
+            <if test="date != null">
+                and date = #{date}
+            </if>
+        </where>
+    </select>
+</mapper>
