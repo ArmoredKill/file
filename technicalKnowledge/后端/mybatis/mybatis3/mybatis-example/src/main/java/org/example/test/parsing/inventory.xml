@@ -21,4 +21,11 @@
         <isbn>0553573862</isbn>
         <price>7.50</price>
     </book> <!--more books ... -->
+    <book year="2010">
+        <title>${user.title}</title>
+        <author>${user.author}</author>
+        <publisher>${user.publisher}</publisher>
+        <isbn>${user.isbn}</isbn>
+        <price>${user.price}</price>
+    </book>
 </inventory>
