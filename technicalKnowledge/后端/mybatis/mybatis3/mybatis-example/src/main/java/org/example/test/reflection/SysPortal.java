@@ -35,7 +35,22 @@ public class SysPortal implements Serializable {
 	 */
 	private String erpUrl;
 
-	public void setId(Integer id) 
+	public SysPortal(Integer id, String pkey, String title, String icon, String url, String moreurl, Integer commonmodule, Integer active, String erpUrl) {
+		this.id = id;
+		this.pkey = pkey;
+		this.title = title;
+		this.icon = icon;
+		this.url = url;
+		this.moreurl = moreurl;
+		this.commonmodule = commonmodule;
+		this.active = active;
+		this.erpUrl = erpUrl;
+	}
+
+	public SysPortal() {
+	}
+
+	public void setId(Integer id)
 	{
 		this.id = id;
 	}

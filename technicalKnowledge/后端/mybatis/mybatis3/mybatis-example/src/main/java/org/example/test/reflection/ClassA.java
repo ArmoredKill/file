@@ -1,5 +1,6 @@
-package org.example.test;
+package org.example.test.reflection;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -10,6 +11,8 @@ import java.util.Map;
 public class ClassA <K , V> {
 
     protected Map<K,V> map;
+
+    protected List<String> list;
 
     public Map<K, V> getMap() {
         return map;
