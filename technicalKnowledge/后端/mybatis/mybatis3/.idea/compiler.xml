@@ -8,67 +8,98 @@
         <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
         <outputRelativeToContentRoot value="true" />
         <module name="mybatis-example" />
-        <module name="mybatis-spring-boot-sample-freemarker" />
-        <module name="mybatis-spring-boot-sample-freemarker-legacy" />
-        <module name="mybatis-spring-boot-sample-groovy" />
         <module name="mybatis" />
-        <module name="mybatis-spring-boot-sample-kotlin" />
-        <module name="mybatis-spring-boot-starter" />
-        <module name="mybatis-spring-boot-sample-velocity" />
-        <module name="mybatis-spring-boot-test-autoconfigure" />
-        <module name="mybatis-spring-boot-sample-war" />
-        <module name="mybatis-spring-boot-starter-test" />
-        <module name="mybatis-spring-boot-sample-xml" />
-        <module name="mybatis-spring-boot-sample-web" />
-        <module name="mybatis-spring-boot-sample-annotation" />
-        <module name="mybatis-spring-boot-sample-velocity-legacy" />
-        <module name="mybatis-spring" />
-        <module name="mybatis-spring-boot-sample-thymeleaf" />
-        <module name="mybatis-spring-boot-autoconfigure" />
+      </profile>
+      <profile name="Annotation profile for mybatis-spring-boot" enabled="true">
+        <sourceOutputDir name="../generated-sources/annotations" />
+        <sourceTestOutputDir name="../generated-test-sources/test-annotations" />
+        <module name="mybatis-spring-boot-sample-velocity.test" />
+        <module name="mybatis-spring-boot-sample-groovy.main" />
+        <module name="mybatis-spring-boot-sample-freemarker-legacy.main" />
+        <module name="mybatis-spring-boot-sample-web.main" />
+        <module name="mybatis-spring-boot-sample-kotlin.main" />
+        <module name="mybatis-spring-boot-starter.test" />
+        <module name="mybatis-spring-boot-sample-annotation.test" />
+        <module name="mybatis-spring-boot-test-autoconfigure.main" />
+        <module name="mybatis-spring-boot-autoconfigure.main" />
+        <module name="mybatis-spring-boot-autoconfigure.test" />
+        <module name="mybatis-spring-boot-sample-velocity-legacy.test" />
+        <module name="mybatis-spring-boot-sample-freemarker.main" />
+        <module name="mybatis-spring-boot-sample-freemarker-legacy.test" />
+        <module name="mybatis-spring-boot-sample-thymeleaf.main" />
+        <module name="mybatis-spring-boot-sample-war.main" />
+        <module name="mybatis-spring-boot-starter-test.test" />
+        <module name="mybatis-spring-boot-sample-web.test" />
+        <module name="mybatis-spring-boot-sample-xml.test" />
+        <module name="mybatis-spring.main" />
+        <module name="mybatis-spring-boot-sample-groovy.test" />
+        <module name="mybatis-spring-boot-sample-annotation.main" />
+        <module name="mybatis-spring-boot-sample-freemarker.test" />
+        <module name="mybatis-spring-boot-sample-velocity.main" />
+        <module name="mybatis-spring-boot-starter.main" />
+        <module name="mybatis-spring-boot-sample-kotlin.test" />
+        <module name="mybatis-spring-boot-test-autoconfigure.test" />
+        <module name="mybatis-spring-boot-sample-thymeleaf.test" />
+        <module name="mybatis-spring-boot-sample-xml.main" />
+        <module name="mybatis-spring-boot-sample-war.test" />
+        <module name="mybatis-spring.test" />
+        <module name="mybatis-spring-boot-sample-velocity-legacy.main" />
+        <module name="mybatis-spring-boot-starter-test.main" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel>
-      <module name="mybatis" target="8" />
-      <module name="mybatis-example" target="1.8" />
-      <module name="mybatis-parent" target="8" />
-      <module name="mybatis-spring" target="17" />
-      <module name="mybatis-spring-boot" target="17" />
-      <module name="mybatis-spring-boot-autoconfigure" target="17" />
-      <module name="mybatis-spring-boot-sample-annotation" target="17" />
-      <module name="mybatis-spring-boot-sample-freemarker" target="17" />
-      <module name="mybatis-spring-boot-sample-freemarker-legacy" target="17" />
-      <module name="mybatis-spring-boot-sample-groovy" target="17" />
-      <module name="mybatis-spring-boot-sample-kotlin" target="17" />
-      <module name="mybatis-spring-boot-sample-thymeleaf" target="17" />
-      <module name="mybatis-spring-boot-sample-velocity" target="17" />
-      <module name="mybatis-spring-boot-sample-velocity-legacy" target="17" />
-      <module name="mybatis-spring-boot-sample-war" target="17" />
-      <module name="mybatis-spring-boot-sample-web" target="17" />
-      <module name="mybatis-spring-boot-sample-xml" target="17" />
-      <module name="mybatis-spring-boot-samples" target="17" />
-      <module name="mybatis-spring-boot-starter" target="17" />
-      <module name="mybatis-spring-boot-starter-test" target="17" />
-      <module name="mybatis-spring-boot-test-autoconfigure" target="17" />
-    </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
       <module name="mybatis-spring" options="-parameters" />
+      <module name="mybatis-spring-boot" options="-parameters" />
       <module name="mybatis-spring-boot-autoconfigure" options="-parameters" />
+      <module name="mybatis-spring-boot-autoconfigure.main" options="-parameters" />
+      <module name="mybatis-spring-boot-autoconfigure.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-annotation" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-annotation.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-annotation.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-freemarker" options="-parameters" />
       <module name="mybatis-spring-boot-sample-freemarker-legacy" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-freemarker-legacy.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-freemarker-legacy.test" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-freemarker.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-freemarker.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-groovy" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-groovy.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-groovy.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-kotlin" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-kotlin.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-kotlin.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-thymeleaf" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-thymeleaf.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-thymeleaf.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-velocity" options="-parameters" />
       <module name="mybatis-spring-boot-sample-velocity-legacy" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-velocity-legacy.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-velocity-legacy.test" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-velocity.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-velocity.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-war" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-war.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-war.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-web" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-web.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-web.test" options="-parameters" />
       <module name="mybatis-spring-boot-sample-xml" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-xml.main" options="-parameters" />
+      <module name="mybatis-spring-boot-sample-xml.test" options="-parameters" />
+      <module name="mybatis-spring-boot-samples" options="-parameters" />
       <module name="mybatis-spring-boot-starter" options="-parameters" />
       <module name="mybatis-spring-boot-starter-test" options="-parameters" />
+      <module name="mybatis-spring-boot-starter-test.main" options="-parameters" />
+      <module name="mybatis-spring-boot-starter-test.test" options="-parameters" />
+      <module name="mybatis-spring-boot-starter.main" options="-parameters" />
+      <module name="mybatis-spring-boot-starter.test" options="-parameters" />
       <module name="mybatis-spring-boot-test-autoconfigure" options="-parameters" />
+      <module name="mybatis-spring-boot-test-autoconfigure.main" options="-parameters" />
+      <module name="mybatis-spring-boot-test-autoconfigure.test" options="-parameters" />
+      <module name="mybatis-spring.main" options="-parameters" />
+      <module name="mybatis-spring.test" options="-parameters" />
     </option>
   </component>
 </project>
